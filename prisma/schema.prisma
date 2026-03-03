@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("POSTGRES_PRISMA_URL")
+  directUrl = env("POSTGRES_URL_NON_POOLING")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("athlete")
+  createdAt DateTime @default(now())
+  
+  watchConnections WatchConnection[]
+  workouts         Workout[]         @relation("CoachWorkouts")
+  receivedWorkouts WorkoutSend[]
+}
+
+model WatchConnection {
+  id            String    @id @default(cuid())
+  userId        String
+  platform      String
+  accessToken   String
+  refreshToken  String?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Workout {
+  id           String    @id @default(cuid())
+  coachId      String
+  name         String
+  notes        String?
+  scheduledFor DateTime?
+  createdAt    DateTime  @default(now())
+  
+  coach User          @relation("CoachWorkouts", fields: [coachId], references: [id])
+  steps WorkoutStep[]
+  sends WorkoutSend[]
+}
+
+model WorkoutStep {
+  id        String  @id @default(cuid())
+  workoutId String
+  position  Int
+  type      String
+  measure   String
+  value     Float
+  unit      String
+  zone      String?
+  
+  workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+}
+
+model WorkoutSend {
+  id        String   @id @default(cuid())
+  workoutId String
+  athleteId String
+  status    String   @default("pending")
+  sentAt    DateTime @default(now())
+  
+  workout Workout @relation(fields: [workoutId], references: [id])
+  athlete User    @relation(fields: [athleteId], references: [id])
+}
