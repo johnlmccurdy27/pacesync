@@ -2,112 +2,87 @@ import { auth } from '@/app/api/auth/[...nextauth]/route'
 import { redirect } from 'next/navigation'
 import { PrismaClient } from '@prisma/client'
 import Link from 'next/link'
+import Sidebar from '@/app/components/Sidebar'
+import WorkoutLibraryDropdown from '@/app/components/WorkoutLibraryDropdown'
 
 const prisma = new PrismaClient()
 
 export default async function WorkoutsPage() {
   const session = await auth()
-  
-  if (!session) {
-    redirect('/login')
-  }
+  if (!session) redirect('/login')
 
-  const workouts = await prisma.workout.findMany({
-    where: {
-      coachId: session.user.id
-    },
-    orderBy: {
-      createdAt: 'desc'
-    },
-    include: {
-      steps: {
-        orderBy: {
-          position: 'asc'
-        }
-      }
-    }
+  const allWorkouts = await prisma.workout.findMany({
+    where: { coachId: session.user.id },
+    orderBy: { createdAt: 'desc' },
+    include: { steps: true }
   })
 
+  const recent = allWorkouts.slice(0, 5)
+
+  const libraryWorkouts = allWorkouts.map(w => ({
+    id: w.id,
+    name: w.name,
+    createdAt: w.createdAt.toISOString(),
+    stepCount: w.steps.length,
+  }))
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-6">
-            <Link href="/dashboard" className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold">
-                P
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">PaceSync</h1>
-            </Link>
-            <nav className="flex gap-4">
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">Dashboard</Link>
-              <Link href="/workouts" className="text-purple-600 font-semibold">Workouts</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600">{session.user?.name}</span>
-            <form action="/api/auth/signout" method="POST">
-              <button className="text-sm text-gray-600 hover:text-gray-900">Sign Out</button>
-            </form>
-          </div>
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-gray-50">
+      <Sidebar userName={session.user?.name || session.user?.email || undefined} />
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Workouts</h2>
-            <p className="text-gray-600">Create and manage your training sessions</p>
-          </div>
-          <Link 
-            href="/workouts/new"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition"
-          >
-            + New Workout
-          </Link>
-        </div>
-
-        {/* Workouts List */}
-        {workouts.length === 0 ? (
-          <div className="bg-white rounded-xl p-12 text-center border-2 border-dashed border-gray-300">
-            <div className="text-6xl mb-4">🏃</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No workouts yet</h3>
-            <p className="text-gray-600 mb-6">Create your first workout to get started</p>
-            <Link 
+      <main className="flex-1 lg:ml-64 w-full">
+        <div className="px-4 lg:px-8 py-6 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">Workouts</h1>
+          <div className="flex items-center gap-3">
+            <WorkoutLibraryDropdown workouts={libraryWorkouts} />
+            <Link
               href="/workouts/new"
-              className="inline-block bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-semibold transition"
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition"
             >
-              Create Workout
+              <span>+</span>
+              New Workout
             </Link>
           </div>
-        ) : (
-          <div className="grid gap-4">
-            {workouts.map((workout) => (
-              <Link 
-                key={workout.id}
-                href={`/workouts/${workout.id}`}
-                className="bg-white rounded-xl p-6 border border-gray-200 hover:border-purple-500 hover:shadow-md transition"
+        </div>
+
+        <div className="px-4 lg:px-8 pb-8">
+          {allWorkouts.length === 0 ? (
+            <div className="bg-white rounded-xl p-12 text-center border-2 border-dashed border-gray-300">
+              <div className="text-6xl mb-4">🏃</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No workouts yet</h3>
+              <p className="text-gray-600 mb-6">Create your first workout to get started</p>
+              <Link
+                href="/workouts/new"
+                className="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition"
               >
-                <div className="flex justify-between items-start mb-3">
-                  <h3 className="text-xl font-semibold text-gray-900">{workout.name}</h3>
-                  <span className="text-sm text-gray-500">
-                    {new Date(workout.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
-                {workout.notes && (
-                  <p className="text-gray-600 mb-3">{workout.notes}</p>
-                )}
-                <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-                    {workout.steps.length} steps
-                  </span>
-                </div>
+                Create Workout
               </Link>
-            ))}
-          </div>
-        )}
+            </div>
+          ) : (
+            <>
+              <p className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">5 Most Recent Workouts</p>
+              <div className="grid gap-4">
+                {recent.map(workout => (
+                  <Link
+                    key={workout.id}
+                    href={`/workouts/${workout.id}`}
+                    className="bg-white rounded-xl p-6 border border-gray-200 hover:border-indigo-400 hover:shadow-md transition"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900">{workout.name}</h3>
+                      <span className="text-sm text-gray-400 flex-shrink-0 ml-4">
+                        {new Date(workout.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
+                      {workout.steps.length} steps
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </main>
     </div>
   )

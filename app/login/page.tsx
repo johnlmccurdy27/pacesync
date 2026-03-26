@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import LogoIcon from '@/app/components/logo.svg'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -17,8 +19,13 @@ export default function LoginPage() {
     setError('')
 
     try {
+      // Fetch CSRF token first to avoid MissingCSRF error in NextAuth v5 beta
+      const csrfRes = await fetch('/api/auth/csrf')
+      const { csrfToken } = await csrfRes.json()
+
       const result = await signIn('credentials', {
         redirect: false,
+        csrfToken,
         email: formData.email,
         password: formData.password
       })
@@ -28,46 +35,47 @@ export default function LoginPage() {
         return
       }
 
-      router.push('/dashboard')
+      router.push('/dashboard-redirect')
     } catch (err) {
       setError('Something went wrong')
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
-        <h1 className="text-3xl font-bold text-purple-900 mb-2">Welcome Back</h1>
-        <p className="text-gray-600 mb-6">Log in to your PaceSync account</p>
+    <div className="min-h-screen flex items-center justify-center p-4 relative" style={{ backgroundImage: 'url(/Boston2.jpg)', backgroundSize: 'cover', backgroundPosition: 'center' }}>
+      <div className="absolute inset-0 bg-black/55" />
+      <div className="relative z-10 rounded-2xl p-8 w-full max-w-md" style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)' }}>
+        <div className="flex justify-center mb-2">
+          <div className="w-24 h-24 flex items-center justify-center overflow-hidden">
+            <Image src={LogoIcon} alt="Structur" width={160} height={160} className="object-contain scale-150" />
+          </div>
+        </div>
+        <p className="text-indigo-200 mb-6 text-center">Log in to your Structur account</p>
 
         {error && (
-          <div className="bg-red-50 text-red-700 p-3 rounded mb-4 text-sm">
+          <div className="bg-red-500/20 text-red-200 border border-red-400/30 p-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
+            <label className="block text-sm font-medium text-indigo-200 mb-1">Email</label>
             <input
               type="email"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-white border-0 rounded-lg focus:ring-2 focus:ring-yellow-400 text-gray-900"
               value={formData.email}
               onChange={(e) => setFormData({...formData, email: e.target.value})}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
+            <label className="block text-sm font-medium text-indigo-200 mb-1">Password</label>
             <input
               type="password"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 bg-white border-0 rounded-lg focus:ring-2 focus:ring-yellow-400 text-gray-900"
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
             />
@@ -75,15 +83,15 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition"
+            className="w-full bg-yellow-400 hover:bg-yellow-300 text-indigo-900 font-bold py-3 rounded-lg transition mt-2"
           >
             Log In
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
+        <p className="text-center text-sm text-indigo-200 mt-6">
           Don't have an account?{' '}
-          <a href="/signup" className="text-purple-600 hover:underline font-medium">
+          <a href="/signup" className="text-white hover:underline font-medium">
             Sign up
           </a>
         </p>

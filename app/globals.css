@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+h1 {
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 input,
 textarea,
 select {

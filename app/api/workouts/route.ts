@@ -4,6 +4,45 @@ import { auth } from '@/app/api/auth/[...nextauth]/route'
 
 const prisma = new PrismaClient()
 
+export async function GET() {
+  try {
+    const session = await auth()
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const workouts = await prisma.workout.findMany({
+      where: {
+        coachId: user.id
+      },
+      orderBy: {
+        createdAt: 'desc'
+      },
+      include: {
+        steps: {
+          orderBy: {
+            position: 'asc'
+          }
+        }
+      }
+    })
+
+    return NextResponse.json(workouts)
+  } catch (error) {
+    console.error('Get workouts error:', error)
+    return NextResponse.json({ error: 'Failed to get workouts' }, { status: 500 })
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth()

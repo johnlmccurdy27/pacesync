@@ -12,13 +12,30 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   password  String
-  name      String
-  role      String   @default("athlete")
-  createdAt DateTime @default(now())
-  
+  name      String?
+  role           String   @default("athlete")
+  isAdmin        Boolean  @default(false)
+  isCoach        Boolean  @default(false)
+  isAthlete      Boolean  @default(false)
+  bio            String?
+  clubName       String?
+  discipline     String?
+  profilePicture String?
+  createdAt      DateTime @default(now())
+
+  // Coach relationships
   watchConnections WatchConnection[]
-  workouts         Workout[]         @relation("CoachWorkouts")
-  receivedWorkouts WorkoutSend[]
+  workouts         Workout[]        @relation("CoachWorkouts")
+  coachGroups      Group[]           @relation("CoachGroups")
+  invitesSent      AthleteInvite[]   @relation("CoachInvites")
+  
+  // Athlete relationships
+  workoutSends     WorkoutSend[]     @relation("WorkoutSendAthlete")
+  athleteGroups    GroupMember[]     @relation("AthleteGroups")
+  
+  // Sweatstack connection
+  sweatstackUserId String?           @unique
+  sweatstackConnectedAt DateTime?
 }
 
 model WatchConnection {
@@ -37,13 +54,14 @@ model Workout {
   id           String    @id @default(cuid())
   coachId      String
   name         String
-  notes        String?
+  notes        String    @default("")
   scheduledFor DateTime?
   createdAt    DateTime  @default(now())
-  
-  coach User          @relation("CoachWorkouts", fields: [coachId], references: [id])
-  steps WorkoutStep[]
-  sends WorkoutSend[]
+
+  coach       User                @relation("CoachWorkouts", fields: [coachId], references: [id], onDelete: Cascade)
+  steps       WorkoutStep[]
+  sends       WorkoutSend[]
+  assignments WorkoutAssignment[]
 }
 
 model WorkoutStep {
@@ -60,12 +78,73 @@ model WorkoutStep {
 }
 
 model WorkoutSend {
-  id        String   @id @default(cuid())
-  workoutId String
-  athleteId String
-  status    String   @default("pending")
-  sentAt    DateTime @default(now())
-  
+  id         String   @id @default(cuid())
+  workoutId  String
+  athleteId  String
+  sentAt     DateTime @default(now())
+  syncStatus String   @default("pending")
+
   workout Workout @relation(fields: [workoutId], references: [id])
-  athlete User    @relation(fields: [athleteId], references: [id])
+  athlete User    @relation("WorkoutSendAthlete", fields: [athleteId], references: [id])
+}
+
+model Group {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  coachId     String
+  coach       User     @relation("CoachGroups", fields: [coachId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  
+  members     GroupMember[]
+  workouts    WorkoutAssignment[]
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  athleteId String
+  athlete   User     @relation("AthleteGroups", fields: [athleteId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime @default(now())
+  
+  @@unique([groupId, athleteId])
+}
+
+model WorkoutAssignment {
+  id          String    @id @default(cuid())
+  workoutId   String
+  workout     Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  groupId     String
+  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  scheduledFor DateTime
+  createdAt   DateTime  @default(now())
+
+  @@unique([workoutId, groupId, scheduledFor])
+}
+
+model AthleteInvite {
+  id        String    @id @default(cuid())
+  email     String
+  token     String    @unique
+  coachId   String
+  coach     User      @relation("CoachInvites", fields: [coachId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model DeletedUser {
+  id                String   @id @default(cuid())
+  originalId        String   @unique
+  email             String
+  name              String?
+  role              String
+  isAdmin           Boolean
+  isCoach           Boolean
+  isAthlete         Boolean
+  clubName          String?
+  discipline        String?
+  deletedAt         DateTime @default(now())
+  permanentDeleteAt DateTime
 }
