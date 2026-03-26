@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import LogoIcon from '@/app/components/logo.svg'
@@ -17,6 +17,14 @@ const DISCIPLINES = [
 ]
 
 export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  )
+}
+
+function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const inviteToken = searchParams.get('invite')
