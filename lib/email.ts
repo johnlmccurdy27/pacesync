@@ -1,6 +1,8 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY)
+}
 const FROM = `Structur <${process.env.RESEND_FROM_EMAIL ?? 'noreply@structur.fit'}>`
 const BASE_URL = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 
@@ -27,7 +29,7 @@ const emailFooter = `
 `
 
 export async function sendWelcomeEmail(to: string, name: string | null): Promise<void> {
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: 'Welcome to Structur',
@@ -60,7 +62,7 @@ export async function sendAthleteInviteEmail(
   token: string
 ): Promise<void> {
   const inviteUrl = `${BASE_URL}/signup?invite=${token}`
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to,
     subject: `${coachName} invited you to Structur`,
