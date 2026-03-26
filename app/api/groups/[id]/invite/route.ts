@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { auth } from '@/app/api/auth/[...nextauth]/route'
 import bcrypt from 'bcryptjs'
+import { sendAthleteInviteEmail } from '@/lib/email'
+import { randomBytes } from 'crypto'
 
 const prisma = new PrismaClient()
 
@@ -12,10 +14,12 @@ export async function POST(
   try {
     const { id: groupId } = await params
     const session = await auth()
-    
+
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const coach = await prisma.user.findUnique({ where: { email: session.user.email } })
 
     const body = await request.json()
     const { email, name } = body
@@ -39,8 +43,10 @@ export async function POST(
         }
       })
 
-      // TODO: Send email with login credentials
-      console.log(`New athlete created: ${email} / ${tempPassword}`)
+      const token = randomBytes(32).toString('hex')
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      await prisma.athleteInvite.create({ data: { email, coachId: coach!.id, token, expiresAt } })
+      await sendAthleteInviteEmail(email, coach?.name ?? coach!.email, token)
     }
 
     // Check if already a member
