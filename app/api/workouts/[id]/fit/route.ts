@@ -30,8 +30,9 @@ export async function GET(
     const encoder = new Encoder()
 
     // 1. FILE ID - REQUIRED
+    // Use numeric enum value 5 = workout (4=activity, 5=workout, 6=course/route)
     encoder.onMesg(Profile.MesgNum.FILE_ID, {
-      type: 'workout',
+      type: Profile.File?.WORKOUT ?? 5,
       manufacturer: 'garmin',
       product: 65534,
       serialNumber: 12345,
