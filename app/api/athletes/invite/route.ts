@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       data: { email, coachId: coach.id, token, expiresAt }
     })
 
-    await sendAthleteInviteEmail(email, coach.name, token)
+    await sendAthleteInviteEmail(email, coach.name ?? coach.email, token)
 
     return NextResponse.json({ invite: { id: invite.id, email: invite.email } })
   } catch (error) {
