@@ -249,12 +249,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
             {/* Workout Header */}
             <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
               <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-1">{workout.name}</h1>
-                  {workout.notes && (
-                    <p className="text-gray-500 text-sm">{workout.notes}</p>
-                  )}
-                </div>
+                <h1 className="text-2xl font-bold text-gray-900 mb-1">{workout.name}</h1>
                 <span className="text-sm text-gray-400 flex-shrink-0 ml-4">
                   Created by Coach {workout.coach?.name ?? workout.coach?.email} on {new Date(workout.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
@@ -321,6 +316,14 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
             </div>
+
+            {/* Coach Notes */}
+            {workout.notes && (
+              <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Coach Notes</h3>
+                <p className="text-gray-700 leading-relaxed">{workout.notes}</p>
+              </div>
+            )}
 
             {/* Workout Steps */}
             <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
