@@ -257,7 +257,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
 
               {/* Visual Chart - Proportional Width AND Height */}
               <div className="mb-6">
-                <h4 className="text-sm font-semibold text-gray-700 mb-3">Workout Structure</h4>
+                <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Workout Structure</h4>
                 <div className="flex gap-1 h-32 items-end">
                   {normalizedSteps.map((step, index) => {
                     const originalStep = workout.steps[index]
@@ -327,7 +327,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Workout Steps */}
             <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Workout Steps</h3>
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Workout Steps</h3>
 
               <div className="space-y-3">
                 {(() => {
