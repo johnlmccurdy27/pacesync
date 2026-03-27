@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { PrismaClient } from '@prisma/client'
 import Sidebar from '@/app/components/Sidebar'
 import FitnessChart from '@/app/components/FitnessChart'
+import LatestActivityCard from '@/app/components/LatestActivityCard'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -49,6 +50,22 @@ export default async function AthleteDashboardPage() {
             <p className="text-gray-500 text-sm">Here's your training overview</p>
           </div>
 
+          {/* Device connection prompt */}
+          {user.watchConnections.length === 0 && (
+            <div className="mb-8 border border-amber-200 bg-amber-50 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1">
+                <p className="font-semibold text-amber-900 text-sm">Connect your device to unlock workout syncing</p>
+                <p className="text-amber-700 text-xs mt-0.5">Add your Garmin or COROS credentials so workouts sync directly to your watch.</p>
+              </div>
+              <Link
+                href="/athlete/profile"
+                className="flex-shrink-0 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+              >
+                Connect Device →
+              </Link>
+            </div>
+          )}
+
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
@@ -66,38 +83,91 @@ export default async function AthleteDashboardPage() {
             <div className="bg-white rounded-xl p-6 border-2 border-indigo-200">
               <div className="text-sm font-medium text-indigo-600 mb-1">Fitness Score</div>
               <div className="text-4xl font-bold text-gray-900 mb-1">72</div>
-              <div className="text-sm text-gray-500">↑ 3 pts this week</div>
+              <div className="text-sm flex items-center gap-1">
+                <span className="text-green-500 font-bold">↑</span>
+                <span className="text-gray-500">3 pts this week</span>
+              </div>
             </div>
           </div>
 
           {/* Next Workout */}
-          {nextAssignment && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Next Workout</h3>
-              <div className="flex items-start justify-between mb-4">
-                <div>
+          {nextAssignment && (() => {
+            const steps = nextAssignment.workout.steps
+
+            const getStepColor = (step: typeof steps[0]) => {
+              const type = step.type.toLowerCase()
+              if (type === 'warmup' || type === 'cooldown') return '#c7d2fe'
+              switch ((step.zone || 'easy').toLowerCase()) {
+                case 'easy': return '#818cf8'
+                case 'moderate': return '#6366f1'
+                case 'tempo': return '#3730a3'
+                case 'threshold': return '#312e81'
+                case 'vo2max': return '#1e1b4b'
+                case 'sprint': return '#0f0d2e'
+                default: return '#6366f1'
+              }
+            }
+
+            const normalized = steps.map(step => {
+              if (step.measure === 'distance') {
+                const val = step.unit.toLowerCase() === 'km' ? step.value : step.unit.toLowerCase() === 'mi' ? step.value * 1.60934 : step.value / 1000
+                return { step, nv: val }
+              } else {
+                const val = step.unit.toLowerCase() === 'min' ? step.value : step.unit.toLowerCase() === 'hr' ? step.value * 60 : step.value / 60
+                return { step, nv: val * 0.5 }
+              }
+            })
+            const totalNv = normalized.reduce((s, n) => s + n.nv, 0)
+            const maxNv = Math.max(...normalized.map(n => n.nv))
+
+            return (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Next Workout</h3>
+                <div className="mb-4">
                   <h4 className="font-bold text-gray-900 text-xl">{nextAssignment.workout.name}</h4>
                   <p className="text-indigo-600 text-sm font-medium mt-1">
                     {new Date(nextAssignment.scheduledFor).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })} — {nextAssignment.group.name}
                   </p>
                   {nextAssignment.workout.notes && <p className="text-gray-500 text-sm mt-2">{nextAssignment.workout.notes}</p>}
                 </div>
-              </div>
-              <div className="border-t border-gray-100 pt-4 space-y-2">
-                {nextAssignment.workout.steps.slice(0, 5).map((step, i) => (
-                  <div key={step.id} className="flex items-center gap-3 text-sm">
-                    <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
-                    <span className="capitalize font-medium text-gray-700">{step.type}</span>
-                    <span className="text-gray-500">{step.value} {step.unit}</span>
-                    {step.zone && <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{step.zone}</span>}
+                <div className="border-t border-gray-100 pt-4 flex gap-6">
+                  {/* Steps list */}
+                  <div className="flex-1 space-y-2">
+                    {steps.slice(0, 5).map((step, i) => (
+                      <div key={step.id} className="flex items-center gap-3 text-sm">
+                        <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
+                        <span className="capitalize font-medium text-gray-700">{step.type}</span>
+                        <span className="text-gray-500">{step.value} {step.unit}</span>
+                        {step.zone && <span className="ml-auto text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{step.zone}</span>}
+                      </div>
+                    ))}
+                    {steps.length > 5 && (
+                      <p className="text-xs text-gray-400 pl-8">+{steps.length - 5} more steps</p>
+                    )}
                   </div>
-                ))}
-                {nextAssignment.workout.steps.length > 5 && (
-                  <p className="text-xs text-gray-400 pl-8">+{nextAssignment.workout.steps.length - 5} more steps</p>
-                )}
+                  {/* Bar chart */}
+                  <div className="w-48 flex-shrink-0 flex gap-0.5 h-24 items-end">
+                    {normalized.map(({ step, nv }) => (
+                      <div
+                        key={step.id}
+                        className="rounded-t flex-1"
+                        style={{
+                          height: `${(nv / maxNv) * 100}%`,
+                          backgroundColor: getStepColor(step),
+                          minHeight: '15%'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
+
+          {/* Latest Activity */}
+          <div className="mb-6">
+            <LatestActivityCard />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* Fitness Chart */}

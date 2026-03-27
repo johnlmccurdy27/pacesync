@@ -1,6 +1,7 @@
 import { auth } from '@/app/api/auth/[...nextauth]/route'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/app/components/Sidebar'
+import LatestActivityCard from '@/app/components/LatestActivityCard'
 import Link from 'next/link'
 import { PrismaClient } from '@prisma/client'
 
@@ -92,6 +93,11 @@ export default async function DashboardPage() {
               <div className="text-4xl font-bold text-gray-900 mb-2">{thisWeekCount}</div>
               <div className="text-sm text-gray-500">{thisWeekCount === 0 ? 'No sessions scheduled' : thisWeekCount === 1 ? '1 session scheduled' : `${thisWeekCount} sessions scheduled`}</div>
             </div>
+          </div>
+
+          {/* Latest Activity */}
+          <div className="mb-8">
+            <LatestActivityCard />
           </div>
 
           {/* Quick Actions */}

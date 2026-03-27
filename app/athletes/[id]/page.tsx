@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { PrismaClient } from '@prisma/client'
 import Sidebar from '@/app/components/Sidebar'
 import FitnessChart from '@/app/components/FitnessChart'
+import AthleteActivities from '@/app/components/AthleteActivities'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -36,7 +37,7 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
           <Link href="/athletes" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">← Back to Athletes</Link>
         </div>
 
-        <div className="p-4 lg:p-8 max-w-2xl space-y-6">
+        <div className="p-4 lg:p-8 max-w-4xl space-y-6">
           {/* Header */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 flex items-center gap-6">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-indigo-100 flex-shrink-0 flex items-center justify-center">
@@ -48,7 +49,7 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
                 </span>
               )}
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-bold text-gray-900">{athlete.name || 'Unnamed Athlete'}</h1>
               <p className="text-gray-500 text-sm">{athlete.email}</p>
               <div className="flex flex-wrap gap-2 mt-2">
@@ -57,13 +58,9 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* Training Load */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4">Training Load</h3>
-            <div className="flex items-center gap-6">
-              <div className="flex-shrink-0 w-24 h-24 relative">
+            {/* Training Load */}
+            <div className="flex-shrink-0 flex items-center gap-4 pl-6 border-l border-gray-100">
+              <div className="relative w-20 h-20">
                 <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f4f6" strokeWidth="10" />
                   <circle cx="50" cy="50" r="40" fill="none" stroke="#3730a3" strokeWidth="10"
@@ -71,14 +68,14 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
                     strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-2xl font-bold text-gray-900">68</span>
+                  <span className="text-xl font-bold text-gray-900">68</span>
                   <span className="text-xs text-gray-400">/100</span>
                 </div>
               </div>
               <div>
-                <p className="font-semibold text-gray-900">Moderate Load</p>
-                <p className="text-sm text-gray-500 mt-1">Weekly training stress is within a healthy range.</p>
-                <p className="text-xs text-gray-400 mt-3">* Will calculate from watch data once connected</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-0.5">Training Load</p>
+                <p className="font-semibold text-gray-900">Moderate</p>
+                <p className="text-xs text-gray-400 mt-0.5">* From watch data</p>
               </div>
             </div>
           </div>
@@ -92,6 +89,9 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
             <FitnessChart />
             <p className="text-xs text-gray-400 mt-3 text-center">* Fitness data will update automatically once watch is connected</p>
           </div>
+
+          {/* Activities */}
+          <AthleteActivities athleteId={id} />
 
           {/* Connected Device */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">

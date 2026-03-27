@@ -87,7 +87,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
             onClick={() => setIsMobileMenuOpen(false)}
           >
             <div className="relative w-32 h-32 flex items-center justify-center transform scale-150 -mt-6 -mb-4">
-              <Image src={LogoIcon} alt="Logo" width={300} height={300} className="object-contain" priority />
+              <Image src={LogoIcon} alt="Logo" width={300} height={300} className="object-contain" priority style={{ mixBlendMode: 'screen' }} />
             </div>
           </Link>
         </div>
