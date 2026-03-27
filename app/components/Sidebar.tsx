@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import LogoIcon from './logo.svg';
+import { APP_VERSION } from '@/lib/version';
 
 export default function Sidebar({ userName }: { userName?: string }) {
   const pathname = usePathname()
@@ -181,6 +182,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate text-white">{displayName}</div>
               <div className="text-xs text-indigo-300">{isAthlete ? 'Athlete' : 'Head Coach'}</div>
+              <div className="text-xs text-indigo-400/60">{APP_VERSION}</div>
             </div>
             <svg className="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
