@@ -46,46 +46,41 @@ export async function GET(
     })
 
     // 3. WORKOUT MESSAGE
+    // sport: 1=running, subSport: 0=generic, capabilities is uint32z bitmask (0 = none)
     encoder.onMesg(Profile.MesgNum.WORKOUT, {
       messageIndex: 0,
       wktName: workout.name,
-      sport: 'running',
-      subSport: 'generic',
-      capabilities: 'tcx',
+      sport: 1,
+      subSport: 0,
       numValidSteps: workout.steps.length
     })
 
     // 4. WORKOUT STEPS
+    // intensity: 0=active,1=rest,2=warmup,3=cooldown,4=recovery,5=interval
+    // durationType: 0=time,1=distance
+    // targetType: 1=heartRate,2=open
     workout.steps.forEach((step: any, index: number) => {
       const stepData: any = {
         messageIndex: index,
-        intensity: getIntensityString(step.type),
-        targetValue: 0,
-        secondaryTargetValue: 0,
-        weightDisplayUnit: 'kilogram'
+        intensity: getIntensityValue(step.type),
       }
 
       // Duration
       if (step.measure === 'distance') {
-        stepData.durationType = 'distance'
-        stepData.durationValue = convertToMeters(step.value, step.unit) * 100 // centimeters
+        stepData.durationType = 1 // distance
+        stepData.durationValue = Math.round(convertToMeters(step.value, step.unit) * 100) // centimeters
       } else {
-        stepData.durationType = 'time'
-        stepData.durationValue = convertToSeconds(step.value, step.unit) * 1000 // milliseconds
+        stepData.durationType = 0 // time
+        stepData.durationValue = Math.round(convertToSeconds(step.value, step.unit) * 1000) // milliseconds
       }
 
-      // Target (heart rate zones)
+      // Target
       if (step.zone && step.zone.toLowerCase() !== 'easy') {
-        stepData.targetType = 'heartRate'
+        stepData.targetType = 1 // heartRate
         stepData.targetValue = getHRZoneNumber(step.zone)
       } else {
-        stepData.targetType = 'open'
+        stepData.targetType = 2 // open
         stepData.targetValue = 0
-      }
-
-      // Add notes if present
-      if (workout.notes) {
-        stepData.notes = workout.notes
       }
 
       encoder.onMesg(Profile.MesgNum.WORKOUT_STEP, stepData)
@@ -131,14 +126,14 @@ function convertToSeconds(value: number, unit: string): number {
   }
 }
 
-function getIntensityString(type: string): string {
+function getIntensityValue(type: string): number {
   switch (type.toLowerCase()) {
-    case 'warmup': return 'warmup'
-    case 'cooldown': return 'cooldown'
-    case 'recovery': return 'rest'
-    case 'interval': return 'active'
-    case 'main': return 'active'
-    default: return 'active'
+    case 'warmup': return 2
+    case 'cooldown': return 3
+    case 'recovery': return 4
+    case 'interval': return 5
+    case 'main': return 0
+    default: return 0
   }
 }
 
