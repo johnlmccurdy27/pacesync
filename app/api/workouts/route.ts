@@ -32,6 +32,9 @@ export async function GET() {
           orderBy: {
             position: 'asc'
           }
+        },
+        coach: {
+          select: { name: true, email: true }
         }
       }
     })

@@ -21,6 +21,7 @@ type Workout = {
   notes: string | null
   createdAt: string
   steps: Step[]
+  coach?: { name: string | null; email: string }
 }
 
 type StepGroup =
@@ -255,7 +256,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                   )}
                 </div>
                 <span className="text-sm text-gray-400 flex-shrink-0 ml-4">
-                  Created {new Date(workout.createdAt).toLocaleDateString()}
+                  Created by Coach {workout.coach?.name ?? workout.coach?.email} on {new Date(workout.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
 

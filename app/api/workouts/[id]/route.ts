@@ -16,7 +16,8 @@ export async function GET(
       include: {
         steps: {
           orderBy: { position: 'asc' }
-        }
+        },
+        coach: { select: { name: true, email: true } }
       }
     })
 

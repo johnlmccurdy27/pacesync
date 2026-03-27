@@ -14,7 +14,7 @@ export default async function WorkoutsPage() {
   const allWorkouts = await prisma.workout.findMany({
     where: { coachId: session.user.id },
     orderBy: { createdAt: 'desc' },
-    include: { steps: true }
+    include: { steps: true, coach: { select: { name: true, email: true } } }
   })
 
   const recent = allWorkouts.slice(0, 5)
@@ -71,7 +71,7 @@ export default async function WorkoutsPage() {
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="text-lg font-semibold text-gray-900">{workout.name}</h3>
                       <span className="text-sm text-gray-400 flex-shrink-0 ml-4">
-                        {new Date(workout.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        Created by Coach {workout.coach.name ?? workout.coach.email} on {new Date(workout.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     </div>
                     <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">
