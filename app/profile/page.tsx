@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Sidebar from '@/app/components/Sidebar'
+import Image from 'next/image'
+
+type WatchConnection = { platform: string; accessToken: string }
 
 type Profile = {
   name: string | null
@@ -10,6 +13,7 @@ type Profile = {
   clubName: string | null
   discipline: string | null
   profilePicture: string | null
+  watchConnections: WatchConnection[]
 }
 
 type Club = { name: string; region: string; county: string; disciplines: string[] }
@@ -25,10 +29,21 @@ const DISCIPLINES = [
 
 export default function CoachProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [watches, setWatches] = useState<WatchConnection[]>([])
   const [form, setForm] = useState({ name: '', bio: '', clubName: '', discipline: '', profilePicture: '' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
+
+  const [garminForm, setGarminForm] = useState({ email: '', password: '' })
+  const [garminSaving, setGarminSaving] = useState(false)
+  const [garminError, setGarminError] = useState('')
+  const [garminDisconnecting, setGarminDisconnecting] = useState(false)
+
+  const [corosForm, setCorosForm] = useState({ email: '', password: '' })
+  const [corosSaving, setCorosSaving] = useState(false)
+  const [corosError, setCorosError] = useState('')
+  const [corosDisconnecting, setCorosDisconnecting] = useState(false)
 
   const [clubs, setClubs] = useState<Club[]>([])
   const [clubSearch, setClubSearch] = useState('')
@@ -40,6 +55,7 @@ export default function CoachProfilePage() {
       .then(r => r.json())
       .then(data => {
         setProfile(data)
+        setWatches(data.watchConnections || [])
         setForm({
           name: data.name || '',
           bio: data.bio || '',
@@ -69,6 +85,53 @@ export default function CoachProfilePage() {
   const filteredClubs = clubSearch.length >= 2
     ? clubs.filter(c => c.name.toLowerCase().includes(clubSearch.toLowerCase())).slice(0, 40)
     : []
+
+  const garminConnection = watches.find(w => w.platform === 'garmin')
+  const corosConnection = watches.find(w => w.platform === 'coros')
+
+  const handleConnectGarmin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setGarminSaving(true); setGarminError('')
+    const res = await fetch('/api/watch/garmin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ garminEmail: garminForm.email, garminPassword: garminForm.password })
+    })
+    if (res.ok) {
+      setWatches(prev => [...prev.filter(w => w.platform !== 'garmin'), { platform: 'garmin', accessToken: garminForm.email }])
+      setGarminForm({ email: '', password: '' })
+    } else { setGarminError('Failed to save. Please try again.') }
+    setGarminSaving(false)
+  }
+
+  const handleDisconnectGarmin = async () => {
+    setGarminDisconnecting(true)
+    const res = await fetch('/api/watch/garmin', { method: 'DELETE' })
+    if (res.ok) setWatches(prev => prev.filter(w => w.platform !== 'garmin'))
+    setGarminDisconnecting(false)
+  }
+
+  const handleConnectCoros = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setCorosSaving(true); setCorosError('')
+    const res = await fetch('/api/watch/coros', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ corosEmail: corosForm.email, corosPassword: corosForm.password })
+    })
+    if (res.ok) {
+      setWatches(prev => [...prev.filter(w => w.platform !== 'coros'), { platform: 'coros', accessToken: corosForm.email }])
+      setCorosForm({ email: '', password: '' })
+    } else { setCorosError('Failed to save. Please try again.') }
+    setCorosSaving(false)
+  }
+
+  const handleDisconnectCoros = async () => {
+    setCorosDisconnecting(true)
+    const res = await fetch('/api/watch/coros', { method: 'DELETE' })
+    if (res.ok) setWatches(prev => prev.filter(w => w.platform !== 'coros'))
+    setCorosDisconnecting(false)
+  }
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -239,6 +302,74 @@ export default function CoachProfilePage() {
               {saved && <span className="text-green-600 text-sm font-medium">✓ Saved</span>}
             </div>
           </form>
+
+          {/* Garmin Connect */}
+          <div className="mt-6 bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 relative flex-shrink-0">
+                <Image src="/Garmin logo.svg" alt="Garmin" fill className="object-contain" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Garmin Connect</h3>
+              {garminConnection && <span className="ml-auto text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Connected</span>}
+            </div>
+            {garminConnection ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">Connected as <span className="font-medium text-gray-900">{garminConnection.accessToken}</span></p>
+                <button onClick={handleDisconnectGarmin} disabled={garminDisconnecting} className="text-sm text-red-500 hover:text-red-700 font-medium transition disabled:opacity-50">
+                  {garminDisconnecting ? 'Disconnecting...' : 'Disconnect Garmin'}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleConnectGarmin} className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Garmin Email</label>
+                  <input type="email" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" placeholder="your@email.com" value={garminForm.email} onChange={e => setGarminForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Garmin Password</label>
+                  <input type="password" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" placeholder="••••••••" value={garminForm.password} onChange={e => setGarminForm(f => ({ ...f, password: e.target.value }))} />
+                </div>
+                {garminError && <p className="text-sm text-red-600">{garminError}</p>}
+                <button type="submit" disabled={garminSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg text-sm transition disabled:opacity-50">
+                  {garminSaving ? 'Connecting...' : 'Connect Garmin'}
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* COROS Connect */}
+          <div className="mt-4 bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 relative flex-shrink-0">
+                <Image src="/Coros logo.png" alt="COROS" fill className="object-contain" />
+              </div>
+              <h3 className="font-semibold text-gray-900">COROS</h3>
+              {corosConnection && <span className="ml-auto text-xs font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full">Connected</span>}
+            </div>
+            {corosConnection ? (
+              <div className="space-y-3">
+                <p className="text-sm text-gray-600">Connected as <span className="font-medium text-gray-900">{corosConnection.accessToken}</span></p>
+                <button onClick={handleDisconnectCoros} disabled={corosDisconnecting} className="text-sm text-red-500 hover:text-red-700 font-medium transition disabled:opacity-50">
+                  {corosDisconnecting ? 'Disconnecting...' : 'Disconnect COROS'}
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleConnectCoros} className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">COROS Email</label>
+                  <input type="email" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" placeholder="your@email.com" value={corosForm.email} onChange={e => setCorosForm(f => ({ ...f, email: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">COROS Password</label>
+                  <input type="password" required className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm" placeholder="••••••••" value={corosForm.password} onChange={e => setCorosForm(f => ({ ...f, password: e.target.value }))} />
+                </div>
+                {corosError && <p className="text-sm text-red-600">{corosError}</p>}
+                <button type="submit" disabled={corosSaving} className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2 rounded-lg text-sm transition disabled:opacity-50">
+                  {corosSaving ? 'Connecting...' : 'Connect COROS'}
+                </button>
+              </form>
+            )}
+          </div>
 
           {/* Sign Out */}
           <div className="mt-6">

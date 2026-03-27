@@ -22,6 +22,7 @@ export async function GET() {
       clubName: true,
       discipline: true,
       createdAt: true,
+      watchConnections: { select: { platform: true } },
       athleteGroups: {
         include: { group: { select: { id: true, name: true } } }
       }

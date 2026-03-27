@@ -25,7 +25,10 @@ export async function GET(
               select: {
                 id: true,
                 name: true,
-                email: true
+                email: true,
+                profilePicture: true,
+                clubName: true,
+                discipline: true
               }
             }
           },

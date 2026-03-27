@@ -62,7 +62,7 @@ export async function PATCH(
   const { isCoach, isAthlete, isAdmin } = body
 
   // Only the super admin can grant/revoke admin — and cannot remove their own admin
-  if (isAdmin !== undefined && id === requester.id) {
+  if (isAdmin !== undefined && isAdmin !== requester.isAdmin && id === requester.id) {
     return NextResponse.json({ error: 'Cannot change your own admin status' }, { status: 400 })
   }
   if (isAdmin === true && !requester.isAdmin) {

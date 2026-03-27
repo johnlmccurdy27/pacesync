@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Sidebar from '@/app/components/Sidebar'
 
+type Assignment = {
+  id: string
+  scheduledFor: string
+  workout: { id: string; name: string }
+  group: { id: string; name: string }
+}
+
 type Group = {
   id: string
   name: string
@@ -22,6 +29,9 @@ type GroupMember = {
     id: string
     name: string | null
     email: string
+    profilePicture: string | null
+    clubName: string | null
+    discipline: string | null
   }
   joinedAt: string
 }
@@ -48,6 +58,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
   const [existingAthletes, setExistingAthletes] = useState<ExistingAthlete[]>([])
   const [athleteSearch, setAthleteSearch] = useState('')
   const [addingId, setAddingId] = useState<string | null>(null)
+  const [weekAssignments, setWeekAssignments] = useState<Assignment[]>([])
 
   useEffect(() => {
     async function getGroupId() {
@@ -61,6 +72,20 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
     if (!groupId) return
     loadGroup()
     fetch('/api/athletes').then(r => r.json()).then(setExistingAthletes).catch(() => {})
+
+    // Fetch this week's assignments
+    const now = new Date()
+    const dayOfWeek = now.getDay() // 0=Sun
+    const monday = new Date(now)
+    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+    monday.setHours(0, 0, 0, 0)
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    sunday.setHours(23, 59, 59, 999)
+    fetch(`/api/assignments?start=${monday.toISOString()}&end=${sunday.toISOString()}`)
+      .then(r => r.json())
+      .then((all: Assignment[]) => setWeekAssignments(all.filter(a => a.group.id === groupId)))
+      .catch(() => {})
   }, [groupId])
 
   const loadGroup = async () => {
@@ -209,28 +234,68 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <div className="p-4 lg:p-8">
-            {/* Group Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="text-sm font-medium text-gray-600 mb-1">Total Athletes</div>
-                <div className="text-3xl font-bold text-indigo-600">{group.members.length}</div>
-              </div>
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="text-sm font-medium text-gray-600 mb-1">Workouts Assigned</div>
-                <div className="text-3xl font-bold text-indigo-600">{group._count.workouts}</div>
-              </div>
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="text-sm font-medium text-gray-600 mb-1">Created</div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {new Date(group.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            </div>
 
-            {/* Athletes List */}
-            <div className="bg-white rounded-xl border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Athletes</h2>
+            {/* Weekly Calendar */}
+            {(() => {
+              const now = new Date()
+              const dayOfWeek = now.getDay()
+              const monday = new Date(now)
+              monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7))
+              monday.setHours(0, 0, 0, 0)
+              const weekDays = Array.from({ length: 7 }, (_, i) => {
+                const d = new Date(monday)
+                d.setDate(monday.getDate() + i)
+                return d
+              })
+              const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+              return (
+                <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">This Week</p>
+                    <span className="text-xs text-gray-400">
+                      {monday.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – {weekDays[6].toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-7 gap-2">
+                    {weekDays.map((date, i) => {
+                      const isToday = date.toDateString() === now.toDateString()
+                      const dayAssignments = weekAssignments.filter(
+                        a => new Date(a.scheduledFor).toDateString() === date.toDateString()
+                      )
+                      return (
+                        <div
+                          key={i}
+                          className={`rounded-lg p-2 min-h-[72px] flex flex-col ${isToday ? 'bg-indigo-50 border border-indigo-300' : 'bg-gray-50 border border-gray-100'}`}
+                        >
+                          <div className="flex flex-col items-center mb-1.5">
+                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{dayLabels[i]}</span>
+                            <span className={`text-base font-bold leading-tight ${isToday ? 'text-indigo-600' : 'text-gray-800'}`}>{date.getDate()}</span>
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            {dayAssignments.map(a => (
+                              <div
+                                key={a.id}
+                                className="text-xs bg-indigo-100 text-indigo-700 rounded px-1.5 py-1 leading-tight font-medium truncate"
+                                title={a.workout.name}
+                              >
+                                {a.workout.name}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Athletes Table */}
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+                  Athletes ({group.members.length})
+                </p>
               </div>
 
               {group.members.length === 0 ? (
@@ -246,34 +311,53 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
-                  {group.members.map((member) => (
-                    <div key={member.id} className="p-6 flex items-center justify-between hover:bg-gray-50 transition">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                          <span className="text-lg font-semibold text-indigo-600">
-                            {member.athlete.name?.charAt(0).toUpperCase() || member.athlete.email.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div>
-                          <a href={`/athletes/${member.athlete.id}`} className="font-semibold text-gray-900 hover:text-indigo-600 transition">
-                            {member.athlete.name || 'Unnamed Athlete'}
-                          </a>
-                          <div className="text-sm text-gray-600">{member.athlete.email}</div>
-                          <div className="text-xs text-gray-500 mt-1">
-                            Joined {new Date(member.joinedAt).toLocaleDateString()}
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50">
+                      <th className="text-left px-4 py-3 font-semibold text-gray-600">Athlete</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-600">Club</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-600">Discipline</th>
+                      <th className="text-left px-4 py-3 font-semibold text-gray-600">Joined Group</th>
+                      <th className="px-4 py-3" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {group.members.map(member => (
+                      <tr key={member.id} className="hover:bg-gray-50 transition">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full overflow-hidden bg-orange-100 flex-shrink-0 flex items-center justify-center ring-2 ring-yellow-400">
+                              {member.athlete.profilePicture
+                                ? <img src={member.athlete.profilePicture} alt="" className="w-full h-full object-cover" />
+                                : <span className="text-xs font-bold text-orange-600">{(member.athlete.name || member.athlete.email).charAt(0).toUpperCase()}</span>
+                              }
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-900">{member.athlete.name || '—'}</div>
+                              <div className="text-xs text-gray-400">{member.athlete.email}</div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleRemoveMember(member.id)}
-                        className="text-red-600 hover:text-red-700 text-sm font-medium"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{member.athlete.clubName || '—'}</td>
+                        <td className="px-4 py-3 text-gray-600">{member.athlete.discipline || '—'}</td>
+                        <td className="px-4 py-3 text-gray-400">
+                          {new Date(member.joinedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end gap-3">
+                            <a href={`/athletes/${member.athlete.id}`} className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">View →</a>
+                            <button
+                              onClick={() => handleRemoveMember(member.id)}
+                              className="text-sm text-red-500 hover:text-red-700 font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               )}
             </div>
           </div>

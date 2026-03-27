@@ -96,25 +96,27 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
           {/* Connected Device */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h3 className="font-semibold text-gray-900 mb-4">Connected Device</h3>
-            {athlete.watchConnections.length > 0 ? (
+            {athlete.watchConnections.length === 0 ? (
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center"><span className="text-2xl">⌚</span></div>
-                <div>
-                  <p className="font-medium text-gray-900 capitalize">{athlete.watchConnections[0].platform}</p>
-                  <p className="text-sm text-green-600 font-medium">Connected</p>
+                <p className="text-gray-500 text-sm">No device connected yet.</p>
+                <div className="flex items-center gap-4 opacity-30">
+                  <div className="w-16 h-9 relative"><Image src="/Garmin logo.svg" alt="Garmin" fill className="object-contain" /></div>
+                  <div className="w-16 h-9 relative"><Image src="/Coros logo.png" alt="COROS" fill className="object-contain" /></div>
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-6">
-                <p className="text-gray-500 text-sm">No device connected yet.</p>
-                <div className="flex items-center gap-6 opacity-40">
-                  <div className="w-16 h-10 relative">
-                    <Image src="/Garmin logo.svg" alt="Garmin" fill className="object-contain" />
+                {athlete.watchConnections.map(conn => (
+                  <div key={conn.platform} className="flex items-center gap-3">
+                    <div className="relative w-20 h-10">
+                      {conn.platform === 'garmin'
+                        ? <Image src="/Garmin logo.svg" alt="Garmin" fill className="object-contain" />
+                        : <Image src="/Coros logo.png" alt="COROS" fill className="object-contain" />
+                      }
+                    </div>
+                    <span className="text-sm text-green-600 font-semibold">Connected</span>
                   </div>
-                  <div className="w-16 h-10 relative">
-                    <Image src="/Coros logo.png" alt="COROS" fill className="object-contain" />
-                  </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
