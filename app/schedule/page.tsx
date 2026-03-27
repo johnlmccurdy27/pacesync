@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 import Sidebar from '@/app/components/Sidebar'
 import Link from 'next/link'
 
@@ -18,6 +19,8 @@ type Group = {
 type Assignment = {
   id: string
   scheduledFor: string
+  deviceSyncId: string | null
+  corosSyncId: string | null
   workout: Workout
   group: Group
 }
@@ -68,6 +71,9 @@ function groupSteps(steps: Step[]): StepGroup[] {
 }
 
 export default function SchedulePage() {
+  const { data: session } = useSession()
+  const isAdmin = (session?.user as any)?.isAdmin === true
+
   const [currentDate, setCurrentDate] = useState(new Date())
   const [assignments, setAssignments] = useState<Assignment[]>([])
   const [workouts, setWorkouts] = useState<Workout[]>([])
@@ -79,6 +85,10 @@ export default function SchedulePage() {
   const [selectedGroup, setSelectedGroup] = useState('')
   const [assigning, setAssigning] = useState(false)
   const [removing, setRemoving] = useState<string | null>(null)
+
+  // Sync state
+  const [syncing, setSyncing] = useState<string | null>(null)
+  const [syncMessage, setSyncMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
   // View state
   const [view, setView] = useState<'month' | 'day'>('month')
@@ -158,6 +168,32 @@ export default function SchedulePage() {
       console.error('Failed to load workout detail:', error)
     } finally {
       setLoadingDetail(false)
+    }
+  }
+
+  const handleSync = async (platform: 'garmin' | 'coros', assignmentIds: string[], label: string) => {
+    setSyncing(`${platform}-${label}`)
+    setSyncMessage(null)
+    const endpoint = platform === 'garmin' ? '/api/admin/sync-garmin' : '/api/admin/sync-coros'
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignmentIds }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        const count = data.totalSynced ?? data.synced ?? 0
+        const platformLabel = platform === 'garmin' ? 'Garmin' : 'COROS'
+        setSyncMessage({ ok: true, text: `Synced to ${count} athlete${count !== 1 ? 's' : ''} on ${platformLabel}${data.errors?.length ? ` (${data.errors.length} failed)` : ''}` })
+        loadData()
+      } else {
+        setSyncMessage({ ok: false, text: data.error || 'Sync failed' })
+      }
+    } catch {
+      setSyncMessage({ ok: false, text: 'Network error' })
+    } finally {
+      setSyncing(null)
     }
   }
 
@@ -242,6 +278,13 @@ export default function SchedulePage() {
 
           <div className="p-4 lg:p-8 lg:pt-2">
 
+            {/* Sync feedback */}
+            {syncMessage && (
+              <div className={`mb-4 px-4 py-3 rounded-lg text-sm font-medium ${syncMessage.ok ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
+                {syncMessage.text}
+              </div>
+            )}
+
             {/* ── MONTH VIEW ── */}
             {view === 'month' && (
               <div className="bg-white rounded-xl p-6 border border-gray-200">
@@ -251,6 +294,24 @@ export default function SchedulePage() {
                     <button onClick={previousMonth} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">← Previous</button>
                     <button onClick={() => setCurrentDate(new Date())} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Today</button>
                     <button onClick={nextMonth} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Next →</button>
+                    {isAdmin && assignments.length > 0 && (
+                      <>
+                        <button
+                          onClick={() => handleSync('garmin', assignments.map(a => a.id), 'month')}
+                          disabled={!!syncing}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50 text-sm"
+                        >
+                          {syncing === 'garmin-month' ? 'Syncing…' : 'Sync Month → Garmin'}
+                        </button>
+                        <button
+                          onClick={() => handleSync('coros', assignments.map(a => a.id), 'month')}
+                          disabled={!!syncing}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50 text-sm"
+                        >
+                          {syncing === 'coros-month' ? 'Syncing…' : 'Sync Month → COROS'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -365,23 +426,51 @@ export default function SchedulePage() {
                           <div
                             key={a.id}
                             onClick={() => loadWorkoutDetail(a.workout.id)}
-                            className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${selectedWorkoutDetail?.id === a.workout.id ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'}`}
+                            className={`p-3 rounded-lg border cursor-pointer transition ${selectedWorkoutDetail?.id === a.workout.id ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'}`}
                           >
-                            <div>
-                              <div className="text-sm font-semibold text-gray-900">{a.workout.name}</div>
-                              <div className="text-xs text-gray-500">{a.group.name}</div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-sm font-semibold text-gray-900">{a.workout.name}</div>
+                                <div className="text-xs text-gray-500">{a.group.name}</div>
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRemoveAssignment(a.id) }}
+                                disabled={removing === a.id}
+                                className="w-7 h-7 flex items-center justify-center rounded-full bg-red-100 hover:bg-red-200 text-red-500 transition disabled:opacity-40 flex-shrink-0 ml-2"
+                                title="Remove"
+                              >
+                                {removing === a.id
+                                  ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                                  : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                }
+                              </button>
                             </div>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); handleRemoveAssignment(a.id) }}
-                              disabled={removing === a.id}
-                              className="w-7 h-7 flex items-center justify-center rounded-full bg-red-100 hover:bg-red-200 text-red-500 transition disabled:opacity-40 flex-shrink-0 ml-2"
-                              title="Remove"
-                            >
-                              {removing === a.id
-                                ? <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                                : <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                              }
-                            </button>
+                            {isAdmin && (
+                              <div className="mt-2 flex flex-wrap gap-2" onClick={e => e.stopPropagation()}>
+                                {a.deviceSyncId ? (
+                                  <span className="text-xs text-green-600 font-medium">✓ Garmin</span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleSync('garmin', [a.id], a.id)}
+                                    disabled={!!syncing}
+                                    className="text-xs font-semibold text-green-600 hover:text-green-800 transition disabled:opacity-50"
+                                  >
+                                    {syncing === `garmin-${a.id}` ? 'Syncing…' : '↑ Garmin'}
+                                  </button>
+                                )}
+                                {a.corosSyncId ? (
+                                  <span className="text-xs text-blue-600 font-medium">✓ COROS</span>
+                                ) : (
+                                  <button
+                                    onClick={() => handleSync('coros', [a.id], a.id)}
+                                    disabled={!!syncing}
+                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition disabled:opacity-50"
+                                  >
+                                    {syncing === `coros-${a.id}` ? 'Syncing…' : '↑ COROS'}
+                                  </button>
+                                )}
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

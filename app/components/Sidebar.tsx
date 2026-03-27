@@ -182,17 +182,14 @@ export default function Sidebar({ userName }: { userName?: string }) {
             <div className="flex-1 min-w-0">
               <div className="font-medium text-sm truncate text-white">{displayName}</div>
               <div className="text-xs text-indigo-300">{isAthlete ? 'Athlete' : 'Head Coach'}</div>
-              <div className="text-xs text-indigo-400/60">{APP_VERSION}</div>
             </div>
             <svg className="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </Link>
-          <form action="/api/auth/signout" method="POST">
-            <button className="w-full text-left px-3 py-2 rounded-xl text-sm text-indigo-300 hover:bg-white/10 transition font-medium">
-              Sign Out
-            </button>
-          </form>
+          <div className="text-center pt-2 pb-1">
+            <span className="text-xs text-indigo-400/60">{APP_VERSION}</span>
+          </div>
         </div>
       </aside>
     </>

@@ -44,6 +44,7 @@ export async function GET(request: Request) {
             notes: true
           }
         },
+        // deviceSyncId and corosSyncId are on the assignment itself — included by default
         group: {
           select: {
             id: true,

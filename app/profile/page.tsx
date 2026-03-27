@@ -239,6 +239,21 @@ export default function CoachProfilePage() {
               {saved && <span className="text-green-600 text-sm font-medium">✓ Saved</span>}
             </div>
           </form>
+
+          {/* Sign Out */}
+          <div className="mt-6">
+            <form action="/api/auth/signout" method="POST">
+              <button
+                type="submit"
+                className="w-full flex items-center gap-3 px-5 py-3 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Sign Out
+              </button>
+            </form>
+          </div>
         </div>
       </main>
     </div>

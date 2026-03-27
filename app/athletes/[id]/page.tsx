@@ -16,12 +16,6 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
   const coach = await prisma.user.findUnique({ where: { email: session.user.email } })
   if (!coach || coach.role !== 'coach') redirect('/dashboard')
 
-  // Ensure this athlete belongs to one of the coach's groups
-  const membership = await prisma.groupMember.findFirst({
-    where: { athleteId: id, group: { coachId: coach.id } }
-  })
-  if (!membership) redirect('/athletes')
-
   const athlete = await prisma.user.findUnique({
     where: { id },
     include: {

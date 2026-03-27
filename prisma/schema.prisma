@@ -112,13 +112,15 @@ model GroupMember {
 }
 
 model WorkoutAssignment {
-  id          String    @id @default(cuid())
-  workoutId   String
-  workout     Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
-  groupId     String
-  group       Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  id           String    @id @default(cuid())
+  workoutId    String
+  workout      Workout   @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  groupId      String
+  group        Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
   scheduledFor DateTime
-  createdAt   DateTime  @default(now())
+  deviceSyncId String?   // Garmin sync status
+  corosSyncId  String?   // Coros sync status
+  createdAt    DateTime  @default(now())
 
   @@unique([workoutId, groupId, scheduledFor])
 }

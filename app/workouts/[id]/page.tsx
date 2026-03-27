@@ -412,7 +412,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
 
             {/* Actions */}
             <div className="flex gap-4">
-              <button 
+              <button
                 onClick={handleDownloadFIT}
                 disabled={downloading}
                 className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition disabled:opacity-50"
