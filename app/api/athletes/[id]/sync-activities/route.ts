@@ -30,7 +30,9 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Allow cron secret bypass OR authenticated coach/admin session
+  const { id } = await params
+
+  // Allow cron secret bypass OR authenticated coach/admin/self session
   const cronSecret = req.headers.get('x-cron-secret')
   const isCron = cronSecret && cronSecret === process.env.CRON_SECRET
 
@@ -38,12 +40,12 @@ export async function POST(
     const session = await auth()
     if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const requester = await prisma.user.findUnique({ where: { email: session.user.email } })
-    if (!requester?.isCoach && !requester?.isAdmin) {
+    if (!requester) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const isSelf = requester.id === id
+    if (!isSelf && !requester.isCoach && !requester.isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
   }
-
-  const { id } = await params
 
   const athlete = await prisma.user.findUnique({
     where: { id },
@@ -57,7 +59,15 @@ export async function POST(
   }
 
   const gc = new GarminConnect({ username: garminConn.accessToken, password: garminConn.refreshToken! })
-  await gc.login()
+  try {
+    await gc.login()
+  } catch (e: any) {
+    const msg = e?.message || String(e)
+    if (msg.includes('429') || msg.toLowerCase().includes('too many')) {
+      return NextResponse.json({ error: 'Garmin is rate limiting requests. Please wait a few minutes and try again.' }, { status: 429 })
+    }
+    return NextResponse.json({ error: `Garmin login failed: ${msg}` }, { status: 502 })
+  }
 
   // Fetch recent activities — get last 30 and filter to last 7 days
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -86,9 +96,9 @@ export async function POST(
   for (const activity of recent) {
     const garminId = String(activity.activityId)
 
-    // Skip if already synced
-    const existing = await prisma.activity.findUnique({ where: { garminActivityId: garminId } })
-    if (existing) { saved.push(garminId); continue }
+    // Skip if already synced for this user
+    const existing = await prisma.activity.findUnique({ where: { userId_garminActivityId: { userId: id, garminActivityId: garminId } } })
+    if (existing) continue
 
     // Download GPX for route data
     let coordinates: [number, number][] = []
@@ -142,5 +152,5 @@ export async function POST(
   // Clean up tmp dir
   try { fs.rmdirSync(tmpDir) } catch {}
 
-  return NextResponse.json({ synced: saved.length, activities: saved })
+  return NextResponse.json({ synced: saved.length })
 }

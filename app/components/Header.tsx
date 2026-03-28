@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState } from 'react'
+import { signOut } from 'next-auth/react'
 import { usePathname } from 'next/navigation'
 import LogoIcon from '@/app/components/logo.svg'
 
@@ -75,11 +76,9 @@ export default function Header({ userName }: { userName?: string }) {
                 <span className="text-sm text-gray-700">{userName}</span>
               </div>
             )}
-            <form action="/api/auth/signout" method="POST">
-              <button className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
-                Sign Out
-              </button>
-            </form>
+            <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition">
+              Sign Out
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
@@ -151,11 +150,11 @@ export default function Header({ userName }: { userName?: string }) {
                   <span className="text-sm font-medium text-gray-700">{userName}</span>
                 </div>
               )}
-              <form action="/api/auth/signout" method="POST" className="px-4">
-                <button className="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 transition font-medium">
+              <div className="px-4">
+                <button onClick={() => signOut({ callbackUrl: '/login' })} className="w-full text-left px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 transition font-medium">
                   Sign Out
                 </button>
-              </form>
+              </div>
             </div>
           </div>
         )}

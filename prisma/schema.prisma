@@ -144,7 +144,7 @@ model Activity {
   id               String    @id @default(cuid())
   userId           String
   user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  garminActivityId String    @unique
+  garminActivityId String
   name             String
   activityType     String
   startTime        DateTime
@@ -159,6 +159,8 @@ model Activity {
   assignmentId     String?
   assignment       WorkoutAssignment? @relation(fields: [assignmentId], references: [id])
   syncedAt         DateTime  @default(now())
+
+  @@unique([userId, garminActivityId])
 }
 
 model DeletedUser {

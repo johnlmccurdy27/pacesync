@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs'
 
 declare module 'next-auth' {
   interface Session {
-    user: { role: string; isAdmin: boolean; isCoach: boolean; isAthlete: boolean } & DefaultSession['user']
+    user: { id: string; role: string; isAdmin: boolean; isCoach: boolean; isAthlete: boolean } & DefaultSession['user']
   }
 }
 
@@ -42,6 +42,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     jwt({ token, user }) {
       if (user) {
+        token.id = user.id
         token.role = (user as any).role
         token.isAdmin = (user as any).isAdmin
         token.isCoach = (user as any).isCoach
@@ -51,6 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     session({ session, token }) {
       if (session.user) {
+        session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.isAdmin = token.isAdmin as boolean
         session.user.isCoach = token.isCoach as boolean

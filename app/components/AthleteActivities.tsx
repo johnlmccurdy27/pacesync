@@ -62,10 +62,6 @@ export default function AthleteActivities({ athleteId }: { athleteId: string }) 
   }, [athleteId])
 
   useEffect(() => {
-    fetch(`/api/athletes/${athleteId}/sync-activities`, { method: 'POST' })
-      .then(r => r.json())
-      .then(data => { if (data.synced > 0) load() })
-      .catch(() => {})
     load()
   }, [athleteId, load])
 
@@ -110,7 +106,7 @@ export default function AthleteActivities({ athleteId }: { athleteId: string }) 
         <div className="text-center py-10 text-gray-400 text-sm">Loading activities…</div>
       ) : activities.length === 0 ? (
         <div className="text-center py-10 text-gray-400 text-sm">
-          No activities yet — syncing automatically in the background.
+          No activities yet — click "Sync from Garmin" to fetch recent activities.
         </div>
       ) : (
         <table className="w-full text-sm">
