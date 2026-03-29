@@ -6,7 +6,6 @@ import fs from 'fs'
 import os from 'os'
 
 const prisma = new PrismaClient()
-const TOKEN_DIR = path.join(process.cwd(), '.coros-tokens')
 
 // ── FIT file generation (mirrors /api/workouts/[id]/fit) ─────────────────────
 
@@ -103,47 +102,15 @@ async function generateFitBuffer(workout: { name: string; createdAt: Date; steps
 }
 
 // ── Coros client ──────────────────────────────────────────────────────────────
+// Vercel functions are ephemeral — always do a fresh login (no file caching)
 
-async function getCorosClient(athleteDbId: string, email: string, password: string) {
-  const { CorosApi, STSConfigs, isDirectory } = await import('coros-connect')
-
+async function getCorosClient(email: string, password: string) {
+  const { CorosApi, STSConfigs } = await import('coros-connect')
   const client = new CorosApi()
   client.config({ stsConfig: STSConfigs.EU })
   client.updateCredentials({ email, password })
-
-  const tokenDir = path.join(TOKEN_DIR, athleteDbId)
-
-  if (isDirectory(tokenDir)) {
-    try {
-      client.loadTokenByFile(tokenDir)
-      return client
-    } catch {
-      // Fall through to fresh login
-    }
-  }
-
   await client.login()
-  if (!fs.existsSync(TOKEN_DIR)) fs.mkdirSync(TOKEN_DIR, { recursive: true })
-  client.exportTokenToFile(tokenDir)
   return client
-}
-
-async function getCorosClientWithReauth(athleteDbId: string, email: string, password: string) {
-  const { CorosApi, STSConfigs } = await import('coros-connect')
-  try {
-    return await getCorosClient(athleteDbId, email, password)
-  } catch {
-    // Token invalid — force fresh login
-    const tokenDir = path.join(TOKEN_DIR, athleteDbId)
-    if (fs.existsSync(tokenDir)) fs.rmSync(tokenDir, { recursive: true, force: true })
-    const client = new CorosApi()
-    client.config({ stsConfig: STSConfigs.EU })
-    client.updateCredentials({ email, password })
-    await client.login()
-    if (!fs.existsSync(TOKEN_DIR)) fs.mkdirSync(TOKEN_DIR, { recursive: true })
-    client.exportTokenToFile(tokenDir)
-    return client
-  }
 }
 
 // ── Sync one assignment to all athletes in the group with Coros ───────────────
@@ -193,33 +160,12 @@ async function syncAssignment(assignmentId: string) {
       const conn = member.athlete.watchConnections[0]
       const label = member.athlete.name || member.athlete.email
       try {
-        const client = await getCorosClientWithReauth(
-          member.athlete.id,
-          conn.accessToken,
-          conn.refreshToken!
-        )
-        // Get userId from account (needed for upload)
+        const client = await getCorosClient(conn.accessToken, conn.refreshToken!)
         const account = await client.getAccount()
-        const userId = account.userId
-        await client.uploadActivityFile(tmpPath, userId)
+        await client.uploadActivityFile(tmpPath, account.userId)
         syncCount++
       } catch (err: any) {
-        // Retry once on auth failure
-        try {
-          const tokenDir = path.join(TOKEN_DIR, member.athlete.id)
-          if (fs.existsSync(tokenDir)) fs.rmSync(tokenDir, { recursive: true, force: true })
-          const { CorosApi, STSConfigs } = await import('coros-connect')
-          const client = new CorosApi()
-          client.config({ stsConfig: STSConfigs.EU })
-          client.updateCredentials({ email: conn.accessToken, password: conn.refreshToken! })
-          await client.login()
-          client.exportTokenToFile(path.join(TOKEN_DIR, member.athlete.id))
-          const account = await client.getAccount()
-          await client.uploadActivityFile(tmpPath, account.userId)
-          syncCount++
-        } catch (retryErr: any) {
-          errors.push(`${label}: ${retryErr?.message ?? 'Unknown error'}`)
-        }
+        errors.push(`${label}: ${err?.message ?? 'Unknown error'}`)
       }
     }
   } finally {
