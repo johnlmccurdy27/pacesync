@@ -185,7 +185,8 @@ export default function SchedulePage() {
       if (res.ok) {
         const count = data.totalSynced ?? data.synced ?? 0
         const platformLabel = platform === 'garmin' ? 'Garmin' : 'COROS'
-        setSyncMessage({ ok: true, text: `Synced to ${count} athlete${count !== 1 ? 's' : ''} on ${platformLabel}${data.errors?.length ? ` (${data.errors.length} failed)` : ''}` })
+        const errorDetail = data.errors?.length ? ` — ${data.errors.join('; ')}` : ''
+        setSyncMessage({ ok: count > 0, text: `Synced to ${count} athlete${count !== 1 ? 's' : ''} on ${platformLabel}${data.errors?.length ? ` (${data.errors.length} failed${errorDetail})` : ''}` })
         loadData()
       } else {
         setSyncMessage({ ok: false, text: data.error || 'Sync failed' })
@@ -303,13 +304,12 @@ export default function SchedulePage() {
                         >
                           {syncing === 'garmin-month' ? 'Syncing…' : 'Sync Month → Garmin'}
                         </button>
-                        <button
-                          onClick={() => handleSync('coros', assignments.map(a => a.id), 'month')}
-                          disabled={!!syncing}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50 text-sm"
+                        <span
+                          title="COROS workout sync requires official API access (coming soon)"
+                          className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg font-semibold text-sm cursor-not-allowed"
                         >
-                          {syncing === 'coros-month' ? 'Syncing…' : 'Sync Month → COROS'}
-                        </button>
+                          Sync Month → COROS
+                        </span>
                       </>
                     )}
                   </div>
@@ -461,13 +461,12 @@ export default function SchedulePage() {
                                 {a.corosSyncId ? (
                                   <span className="text-xs text-blue-600 font-medium">✓ COROS</span>
                                 ) : (
-                                  <button
-                                    onClick={() => handleSync('coros', [a.id], a.id)}
-                                    disabled={!!syncing}
-                                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition disabled:opacity-50"
+                                  <span
+                                    title="COROS workout sync requires official API access (coming soon)"
+                                    className="text-xs font-semibold text-gray-300 cursor-not-allowed"
                                   >
-                                    {syncing === `coros-${a.id}` ? 'Syncing…' : '↑ COROS'}
-                                  </button>
+                                    ↑ COROS
+                                  </span>
                                 )}
                               </div>
                             )}
