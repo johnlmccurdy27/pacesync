@@ -134,23 +134,6 @@ export default function Sidebar({ userName }: { userName?: string }) {
             </div>
           )}
 
-          <div>
-            <div className="text-xs font-semibold text-indigo-300/70 px-3 mb-2 uppercase tracking-wider">Settings</div>
-            <Link
-              href="/integrations"
-  
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1 ${
-                isActive('/integrations')
-                  ? 'bg-white text-indigo-700 shadow-md font-semibold'
-                  : 'text-indigo-200 hover:bg-white/10 font-medium'
-              }`}
-            >
-              <svg className={`w-5 h-5 flex-shrink-0 ${isActive('/integrations') ? 'text-indigo-600' : 'text-indigo-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              <span>Integrations</span>
-            </Link>
-          </div>
         </nav>
 
         {/* User section */}

@@ -73,7 +73,7 @@ export default function LatestActivityCard() {
   if (!activity) {
     return (
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-3">Latest Activity</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Latest Activity</h3>
         <p className="text-sm text-gray-400">No activities synced yet.</p>
       </div>
     )
@@ -83,7 +83,7 @@ export default function LatestActivityCard() {
     <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col md:flex-row">
       {/* Info — left side with padding */}
       <div className="flex-1 min-w-0 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Latest Activity</h3>
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Latest Activity</h3>
 
         <div className="flex items-center gap-2 mb-1">
           <span className="text-xl">{activityIcon(activity.activityType)}</span>

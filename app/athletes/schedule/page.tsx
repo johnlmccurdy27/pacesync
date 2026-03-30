@@ -1,10 +1,26 @@
-import { auth } from '@/app/api/auth/[...nextauth]/route'
-import { redirect } from 'next/navigation'
-import { PrismaClient } from '@prisma/client'
-import Sidebar from '@/app/components/Sidebar'
-import Link from 'next/link'
+'use client'
 
-const prisma = new PrismaClient()
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import Sidebar from '@/app/components/Sidebar'
+
+type Workout = {
+  id: string
+  name: string
+  notes: string | null
+}
+
+type Group = {
+  id: string
+  name: string
+}
+
+type Assignment = {
+  id: string
+  scheduledFor: string
+  workout: Workout
+  group: Group
+}
 
 type Step = {
   id: string
@@ -16,167 +32,360 @@ type Step = {
   position: number
 }
 
+type WorkoutDetail = {
+  id: string
+  name: string
+  notes: string | null
+  steps: Step[]
+}
+
 type StepGroup =
   | { kind: 'single'; step: Step }
   | { kind: 'repeat'; steps: Step[]; count: number }
 
 function groupSteps(steps: Step[]): StepGroup[] {
-  const result: StepGroup[] = []
+  const groups: StepGroup[] = []
   let i = 0
+  const stepsMatch = (a: Step, b: Step) =>
+    a.type === b.type && a.value === b.value && a.unit === b.unit && a.measure === b.measure
+
   while (i < steps.length) {
     let found = false
-    for (let size = Math.min(6, Math.floor((steps.length - i) / 2)); size >= 2; size--) {
-      const window = steps.slice(i, i + size)
+    const maxWindow = Math.min(6, Math.floor((steps.length - i) / 2))
+    for (let w = 2; w <= maxWindow; w++) {
+      const pattern = steps.slice(i, i + w)
       let count = 1
-      while (
-        i + size * (count + 1) <= steps.length &&
-        steps.slice(i + size * count, i + size * (count + 1)).every((s, j) =>
-          s.type === window[j].type && s.value === window[j].value &&
-          s.unit === window[j].unit && s.measure === window[j].measure
-        )
-      ) count++
-      if (count >= 2) {
-        result.push({ kind: 'repeat', steps: window, count })
-        i += size * count
-        found = true
-        break
+      let j = i + w
+      while (j + w <= steps.length) {
+        const candidate = steps.slice(j, j + w)
+        if (pattern.every((s, k) => stepsMatch(s, candidate[k]))) { count++; j += w } else break
       }
+      if (count >= 2) { groups.push({ kind: 'repeat', steps: pattern, count }); i = j; found = true; break }
     }
-    if (!found) { result.push({ kind: 'single', step: steps[i] }); i++ }
+    if (!found) { groups.push({ kind: 'single', step: steps[i] }); i++ }
   }
-  return result
+  return groups
 }
 
-export default async function AthleteSchedulePage() {
-  const session = await auth()
-  if (!session) redirect('/login')
+export default function AthleteSchedulePage() {
+  const { data: session } = useSession()
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user!.email! },
-    include: { athleteGroups: { include: { group: true } } }
-  })
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const [assignments, setAssignments] = useState<Assignment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'month' | 'day'>('month')
+  const [dayViewDate, setDayViewDate] = useState(new Date())
+  const [selectedWorkoutDetail, setSelectedWorkoutDetail] = useState<WorkoutDetail | null>(null)
+  const [loadingDetail, setLoadingDetail] = useState(false)
 
-  if (!user || user.role !== 'athlete') redirect('/dashboard-redirect')
+  // Default to day view on mobile
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setView('day')
+    }
+  }, [])
 
-  const groupIds = user.athleteGroups.map(m => m.groupId)
+  useEffect(() => {
+    loadData()
+  }, [currentDate])
 
-  const startOfToday = new Date()
-  startOfToday.setHours(0, 0, 0, 0)
+  // Auto-select first workout when day changes or assignments load
+  useEffect(() => {
+    const dayA = assignments.filter(a => new Date(a.scheduledFor).toDateString() === dayViewDate.toDateString())
+    if (dayA.length > 0) {
+      fetchWorkoutDetail(dayA[0].workout.id)
+    } else {
+      setSelectedWorkoutDetail(null)
+    }
+  }, [dayViewDate, assignments])
 
-  const assignments = groupIds.length > 0
-    ? await prisma.workoutAssignment.findMany({
-        where: { groupId: { in: groupIds }, scheduledFor: { gte: startOfToday } },
-        orderBy: { scheduledFor: 'asc' },
-        include: {
-          workout: { include: { steps: { orderBy: { position: 'asc' } } } },
-          group: true
-        }
-      })
-    : []
-
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const tomorrow = new Date(today)
-  tomorrow.setDate(tomorrow.getDate() + 1)
-
-  function dayLabel(date: Date) {
-    const d = new Date(date)
-    d.setHours(0, 0, 0, 0)
-    if (d.getTime() === today.getTime()) return 'Today'
-    if (d.getTime() === tomorrow.getTime()) return 'Tomorrow'
-    return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      const res = await fetch(`/api/assignments?start=${startOfMonth.toISOString()}&end=${endOfMonth.toISOString()}`)
+      if (res.ok) setAssignments(await res.json())
+    } catch (error) {
+      console.error('Failed to load assignments:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function isToday(date: Date) {
-    const d = new Date(date)
-    d.setHours(0, 0, 0, 0)
-    return d.getTime() === today.getTime()
+  const fetchWorkoutDetail = async (workoutId: string) => {
+    setLoadingDetail(true)
+    try {
+      const res = await fetch(`/api/workouts/${workoutId}`)
+      if (res.ok) setSelectedWorkoutDetail(await res.json())
+    } catch (error) {
+      console.error('Failed to load workout detail:', error)
+    } finally {
+      setLoadingDetail(false)
+    }
   }
+
+  const loadWorkoutDetail = (workoutId: string) => {
+    if (selectedWorkoutDetail?.id === workoutId) {
+      setSelectedWorkoutDetail(null)
+      return
+    }
+    fetchWorkoutDetail(workoutId)
+  }
+
+  const getDaysInMonth = () => {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const startingDayMon = (firstDay.getDay() + 6) % 7
+    const days: (Date | null)[] = []
+    for (let i = 0; i < startingDayMon; i++) days.push(null)
+    for (let day = 1; day <= lastDay.getDate(); day++) days.push(new Date(year, month, day))
+    return days
+  }
+
+  const getAssignmentsForDate = (date: Date) =>
+    assignments.filter(a => new Date(a.scheduledFor).toDateString() === date.toDateString())
+
+  const previousMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))
+  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))
+
+  const previousDay = () => {
+    const d = new Date(dayViewDate)
+    d.setDate(d.getDate() - 1)
+    setDayViewDate(d)
+    setSelectedWorkoutDetail(null)
+  }
+
+  const nextDay = () => {
+    const d = new Date(dayViewDate)
+    d.setDate(d.getDate() + 1)
+    setDayViewDate(d)
+    setSelectedWorkoutDetail(null)
+  }
+
+  const switchToDayView = (date: Date) => {
+    setDayViewDate(date)
+    setSelectedWorkoutDetail(null)
+    setView('day')
+  }
+
+  const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+  const days = getDaysInMonth()
+  const dayAssignments = getAssignmentsForDate(dayViewDate)
+
+  const userName = (session?.user as any)?.name || (session?.user as any)?.email || ''
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar userName={user.name || user.email} />
+      <Sidebar userName={userName} />
 
       <main className="flex-1 lg:ml-64 min-w-0">
-        <div className="px-4 lg:px-8 py-6">
+        {/* Top Bar */}
+        <div className="px-4 lg:px-8 py-6 flex justify-between items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900 hidden lg:block">My Schedule</h1>
+          <div className="flex bg-gray-100 rounded-lg p-1 ml-auto">
+            <button
+              onClick={() => setView('month')}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${view === 'month' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Month
+            </button>
+            <button
+              onClick={() => { setView('day'); setSelectedWorkoutDetail(null) }}
+              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${view === 'day' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Day
+            </button>
+          </div>
         </div>
 
-        <div className="px-4 lg:px-8 pb-8 max-w-2xl space-y-4">
-          {assignments.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <div className="text-4xl mb-3">📅</div>
-              <p className="text-gray-500">No upcoming workouts scheduled</p>
-              <p className="text-xs text-gray-400 mt-1">Your coach will assign sessions here</p>
-            </div>
-          ) : assignments.map(assignment => {
-            const groups = groupSteps(assignment.workout.steps)
-            let stepCounter = 0
+        <div className="p-4 lg:p-8 lg:pt-2">
 
-            return (
-              <div
-                key={assignment.id}
-                className={`bg-white rounded-xl border overflow-hidden ${isToday(assignment.scheduledFor) ? 'border-indigo-300 shadow-md' : 'border-gray-200'}`}
-              >
-                {/* Header */}
-                <div className={`px-5 py-3 flex items-center justify-between ${isToday(assignment.scheduledFor) ? 'bg-indigo-600' : 'bg-gray-50 border-b border-gray-100'}`}>
-                  <div>
-                    <div className={`text-xs font-semibold uppercase tracking-wider ${isToday(assignment.scheduledFor) ? 'text-indigo-200' : 'text-gray-400'}`}>
-                      {dayLabel(assignment.scheduledFor)}
-                    </div>
-                    <div className={`font-bold text-lg leading-tight ${isToday(assignment.scheduledFor) ? 'text-white' : 'text-gray-900'}`}>
-                      {assignment.workout.name}
-                    </div>
-                  </div>
-                  <div className={`text-xs font-medium px-2.5 py-1 rounded-full ${isToday(assignment.scheduledFor) ? 'bg-indigo-500 text-indigo-100' : 'bg-gray-100 text-gray-500'}`}>
-                    {assignment.group.name}
-                  </div>
-                </div>
-
-                {/* Steps */}
-                <div className="p-4 space-y-2">
-                  {assignment.workout.notes && (
-                    <p className="text-sm text-gray-500 mb-3">{assignment.workout.notes}</p>
-                  )}
-                  {groups.map((group, gi) => {
-                    if (group.kind === 'single') {
-                      stepCounter++
-                      const n = stepCounter
-                      return (
-                        <div key={gi} className="flex items-center gap-3 text-sm">
-                          <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{n}</span>
-                          <span className="capitalize font-medium text-gray-700">{group.step.type}</span>
-                          <span className="text-gray-500">{group.step.value} {group.step.unit}</span>
-                          {group.step.zone && <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{group.step.zone}</span>}
-                        </div>
-                      )
-                    } else {
-                      stepCounter++
-                      const n = stepCounter
-                      return (
-                        <div key={gi} className="border border-yellow-300 rounded-lg overflow-hidden">
-                          <div className="bg-yellow-50 px-3 py-1.5 flex items-center gap-2 border-b border-yellow-200">
-                            <span className="w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{n}</span>
-                            <span className="text-sm font-bold text-yellow-600">{group.count} ×</span>
-                            <span className="text-xs text-yellow-600 font-medium">Repeat Block</span>
-                          </div>
-                          <div className="p-3 space-y-1.5">
-                            {group.steps.map((step, si) => (
-                              <div key={si} className="flex items-center gap-3 text-sm pl-2">
-                                <span className="capitalize font-medium text-gray-700">{step.type}</span>
-                                <span className="text-gray-500">{step.value} {step.unit}</span>
-                                {step.zone && <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{step.zone}</span>}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )
-                    }
-                  })}
+          {/* ── MONTH VIEW ── */}
+          {view === 'month' && (
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-6 gap-2">
+                <h2 className="text-lg lg:text-2xl font-bold text-gray-900">{monthName}</h2>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={previousMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">←</button>
+                  <button onClick={() => { setCurrentDate(new Date()); }} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">Today</button>
+                  <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">→</button>
                 </div>
               </div>
-            )
-          })}
+
+              {/* Legend */}
+              <div className="flex items-center gap-6 text-sm mb-6">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-indigo-100 border border-indigo-500 rounded"></div>
+                  <span className="text-gray-600">Today</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-indigo-100 rounded"></div>
+                  <span className="text-gray-600">Workout assigned</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-7 gap-2">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+                  <div key={day} className="text-center font-semibold text-gray-700 py-2 text-xs lg:text-sm">{day}</div>
+                ))}
+                {days.map((date, index) => {
+                  if (!date) return <div key={`empty-${index}`} className="aspect-square" />
+                  const dayA = getAssignmentsForDate(date)
+                  const isToday = date.toDateString() === new Date().toDateString()
+                  const isPast = date < new Date() && !isToday
+                  return (
+                    <div
+                      key={date.toISOString()}
+                      onClick={() => switchToDayView(date)}
+                      className={`min-h-[44px] lg:aspect-square border rounded-lg p-1 lg:p-2 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
+                    >
+                      <div className="flex flex-col h-full">
+                        <span className={`text-sm font-semibold block mb-1 ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>
+                          {date.getDate()}
+                        </span>
+                        <div className="flex-1 overflow-y-auto space-y-1">
+                          {dayA.map(a => (
+                            <div
+                              key={a.id}
+                              className="text-xs bg-indigo-100 text-indigo-700 rounded px-1.5 py-1 truncate"
+                              title={`${a.workout.name} – ${a.group.name}`}
+                            >
+                              {a.workout.name}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ── DAY VIEW ── */}
+          {view === 'day' && (
+            <div className="flex flex-col lg:flex-row gap-6 items-start">
+
+              {/* Left panel — day + assignments */}
+              <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  {/* Day navigation */}
+                  <div className="flex items-center justify-between mb-5 gap-3">
+                    <button onClick={previousDay} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 transition text-gray-400 hover:text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <div className="text-center flex-1">
+                      <div className="text-xs font-semibold uppercase tracking-widest text-indigo-600 mb-0.5">
+                        {dayViewDate.toLocaleDateString('en-GB', { weekday: 'short' })}
+                      </div>
+                      <div className="text-6xl font-bold text-gray-900 leading-none">
+                        {dayViewDate.getDate()}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1.5 tracking-wide">
+                        {dayViewDate.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                      </div>
+                    </div>
+                    <button onClick={nextDay} className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 transition text-gray-400 hover:text-gray-600">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                  </div>
+
+                  {dayAssignments.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-4">No workouts scheduled</p>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Scheduled</div>
+                      {dayAssignments.map(a => (
+                        <div
+                          key={a.id}
+                          onClick={() => loadWorkoutDetail(a.workout.id)}
+                          className={`p-3 rounded-lg border cursor-pointer transition ${selectedWorkoutDetail?.id === a.workout.id ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'}`}
+                        >
+                          <div className="text-sm font-semibold text-gray-900">{a.workout.name}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{a.group.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right panel — workout detail */}
+              <div className="flex-1 w-full">
+                {loadingDetail && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-8 flex items-center justify-center">
+                    <div className="text-gray-400">Loading workout...</div>
+                  </div>
+                )}
+
+                {!loadingDetail && !selectedWorkoutDetail && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-12 flex flex-col items-center justify-center text-center">
+                    <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                      <svg className="w-8 h-8 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                      </svg>
+                    </div>
+                    <p className="text-gray-500 font-medium">Tap a workout to view its details</p>
+                  </div>
+                )}
+
+                {!loadingDetail && selectedWorkoutDetail && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <div className="mb-5">
+                      <h2 className="text-xl font-bold text-gray-900">{selectedWorkoutDetail.name}</h2>
+                      {selectedWorkoutDetail.notes && (
+                        <p className="text-sm text-gray-500 mt-1">{selectedWorkoutDetail.notes}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {groupSteps(selectedWorkoutDetail.steps).map((group, gi) => {
+                        if (group.kind === 'single') {
+                          return (
+                            <div key={gi} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg">
+                              <span className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{gi + 1}</span>
+                              <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                <div><div className="text-xs text-gray-400 mb-0.5">Type</div><div className="font-medium text-gray-900 capitalize text-sm">{group.step.type}</div></div>
+                                <div><div className="text-xs text-gray-400 mb-0.5">Amount</div><div className="font-medium text-gray-900 text-sm">{group.step.value} {group.step.unit}</div></div>
+                                <div><div className="text-xs text-gray-400 mb-0.5">Measure</div><div className="font-medium text-gray-900 capitalize text-sm">{group.step.measure}</div></div>
+                                <div><div className="text-xs text-gray-400 mb-0.5">Zone</div><div className="font-medium text-gray-900 text-sm">{group.step.zone || '—'}</div></div>
+                              </div>
+                            </div>
+                          )
+                        } else {
+                          return (
+                            <div key={gi} className="border border-yellow-300 rounded-lg overflow-hidden">
+                              <div className="bg-yellow-50 px-4 py-2 flex items-center gap-2 border-b border-yellow-200">
+                                <span className="w-7 h-7 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{gi + 1}</span>
+                                <span className="font-bold text-yellow-600">{group.count} ×</span>
+                                <span className="text-sm text-yellow-600 font-medium">Repeat Block</span>
+                              </div>
+                              <div className="divide-y divide-yellow-100">
+                                {group.steps.map((step, si) => (
+                                  <div key={si} className="flex items-center gap-3 px-4 py-3">
+                                    <span className="w-6 h-6 rounded-full bg-yellow-100 text-yellow-600 flex items-center justify-center text-xs font-bold flex-shrink-0">{si + 1}</span>
+                                    <div className="flex-1 grid grid-cols-2 lg:grid-cols-4 gap-2">
+                                      <div><div className="text-xs text-gray-400 mb-0.5">Type</div><div className="font-medium text-gray-900 capitalize text-sm">{step.type}</div></div>
+                                      <div><div className="text-xs text-gray-400 mb-0.5">Amount</div><div className="font-medium text-gray-900 text-sm">{step.value} {step.unit}</div></div>
+                                      <div><div className="text-xs text-gray-400 mb-0.5">Measure</div><div className="font-medium text-gray-900 capitalize text-sm">{step.measure}</div></div>
+                                      <div><div className="text-xs text-gray-400 mb-0.5">Zone</div><div className="font-medium text-gray-900 text-sm">{step.zone || '—'}</div></div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )
+                        }
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

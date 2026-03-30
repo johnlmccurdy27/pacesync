@@ -32,8 +32,7 @@ function getPageTitle(pathname: string) {
   if (pathname === '/schedule' || pathname === '/athletes/schedule') return 'Schedule'
   if (pathname === '/profile' || pathname === '/athlete/profile') return 'My Profile'
   if (pathname === '/admin') return 'Admin'
-  if (pathname === '/integrations') return 'Integrations'
-  return 'Structur'
+return 'Structur'
 }
 
 // ── Icons (filled = active, stroke = inactive) ────────────────────────────────

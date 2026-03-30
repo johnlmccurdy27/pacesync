@@ -77,19 +77,19 @@ export default async function DashboardPage() {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
-              <div className="text-sm font-medium mb-1 opacity-90">Total Athletes</div>
+              <div className="text-xs font-semibold uppercase tracking-wider mb-1 text-white/70">Total Athletes</div>
               <div className="text-4xl font-bold mb-2">{athleteCount}</div>
               <div className="text-sm opacity-75">{athleteCount === 1 ? '1 athlete across your groups' : athleteCount > 0 ? `${athleteCount} athletes across your groups` : 'No athletes yet'}</div>
             </div>
 
             <div className="bg-white rounded-xl p-6 border-2 border-indigo-200 hover:border-indigo-400 transition">
-              <div className="text-sm font-medium text-indigo-600 mb-1">Workouts Created</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Workouts Created</div>
               <div className="text-4xl font-bold text-gray-900 mb-2">{workoutCount}</div>
               <div className="text-sm text-gray-500">{workoutCount === 0 ? 'Ready to create your first?' : workoutCount === 1 ? '1 workout in your library' : `${workoutCount} workouts in your library`}</div>
             </div>
 
             <div className="bg-white rounded-xl p-6 border-2 border-indigo-200 hover:border-indigo-400 transition">
-              <div className="text-sm font-medium text-indigo-600 mb-1">This Week</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">This Week</div>
               <div className="text-4xl font-bold text-gray-900 mb-2">{thisWeekCount}</div>
               <div className="text-sm text-gray-500">{thisWeekCount === 0 ? 'No sessions scheduled' : thisWeekCount === 1 ? '1 session scheduled' : `${thisWeekCount} sessions scheduled`}</div>
             </div>
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
 
           {/* Quick Actions */}
           <div className="bg-white rounded-xl p-6 border border-gray-200 mb-8">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Quick Actions</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Link
                 href="/workouts/new"
@@ -135,7 +135,7 @@ export default async function DashboardPage() {
           {/* Getting Started */}
           {(workoutCount === 0 || athleteCount === 0 || thisWeekCount === 0) && (
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-6 border border-indigo-200">
-              <h4 className="font-semibold text-gray-900 mb-4">Getting started</h4>
+              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Getting started</h4>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${workoutCount > 0 ? 'bg-green-500' : 'bg-gray-200'}`}>

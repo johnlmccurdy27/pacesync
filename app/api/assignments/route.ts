@@ -24,11 +24,22 @@ export async function GET(request: Request) {
     const start = searchParams.get('start')
     const end = searchParams.get('end')
 
+    // Athletes see assignments for their groups; coaches see assignments for groups they own
+    let whereClause: Record<string, unknown>
+    if (user.role === 'athlete') {
+      const memberships = await prisma.groupMember.findMany({
+        where: { athleteId: user.id },
+        select: { groupId: true }
+      })
+      const groupIds = memberships.map(m => m.groupId)
+      whereClause = { groupId: { in: groupIds } }
+    } else {
+      whereClause = { group: { coachId: user.id } }
+    }
+
     const assignments = await prisma.workoutAssignment.findMany({
       where: {
-        group: {
-          coachId: user.id
-        },
+        ...whereClause,
         ...(start && end ? {
           scheduledFor: {
             gte: new Date(start),

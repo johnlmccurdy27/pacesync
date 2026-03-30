@@ -68,12 +68,15 @@ export default async function AthleteGroupsPage() {
                           : <span className="text-sm font-bold text-indigo-600">{membership.group.coach.name?.charAt(0) || 'C'}</span>
                         }
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-gray-700">{membership.group.coach.name || 'Your Coach'}</p>
                         {membership.group.coach.clubName && (
                           <p className="text-xs text-gray-400">{membership.group.coach.clubName}</p>
                         )}
                       </div>
+                      <span className="flex-shrink-0 text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                        Coach
+                      </span>
                     </div>
                   )}
                 </div>
