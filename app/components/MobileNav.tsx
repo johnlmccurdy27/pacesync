@@ -159,8 +159,8 @@ export default function MobileNav() {
   return (
     <>
       {/* ── Mobile top bar ── */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-40 h-14 bg-white/95 backdrop-blur-sm border-b border-gray-100 flex items-center px-4 gap-3">
-        <div className="relative w-8 h-8 flex-shrink-0 -ml-1">
+      <div className="lg:hidden fixed top-0 left-0 right-0 z-[1001] h-14 bg-white/95 backdrop-blur-sm border-b border-gray-100 flex items-center px-4 gap-3">
+        <div className="relative w-11 h-11 flex-shrink-0 -ml-1">
           <Image src={LogoIcon} alt="Structur" fill className="object-contain" style={{ mixBlendMode: 'multiply' }} priority />
         </div>
         <span className="flex-1 font-bold text-gray-900 text-[15px] tracking-tight">
@@ -176,7 +176,7 @@ export default function MobileNav() {
 
       {/* ── Floating bottom pill nav ── */}
       <div
-        className="lg:hidden fixed left-4 right-4 z-40"
+        className="lg:hidden fixed left-4 right-4 z-[1001]"
         style={{ bottom: 'max(16px, env(safe-area-inset-bottom))' }}
       >
         <nav className="bg-white rounded-full shadow-2xl shadow-black/15 border border-gray-100 flex items-center justify-around px-1 py-1.5">
