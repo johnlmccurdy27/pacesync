@@ -98,7 +98,8 @@ async function syncAssignment(assignmentId: string) {
     assignment.workout.notes,
     assignment.workout.steps
   )
-  const dateStr = assignment.scheduledFor.toISOString().split('T')[0]
+  const d = assignment.scheduledFor
+  const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
   let syncCount = 0
   const errors: string[] = []

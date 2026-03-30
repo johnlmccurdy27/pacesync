@@ -113,7 +113,14 @@ function SignupForm() {
         throw new Error(data.error || 'Signup failed')
       }
 
-      router.push('/login')
+      if (inviteToken) {
+        // Athlete — sign them in and go straight to onboarding
+        const { signIn } = await import('next-auth/react')
+        await signIn('credentials', { email: formData.email, password: formData.password, redirect: false })
+        router.push('/athletes/onboarding')
+      } else {
+        router.push('/login')
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {

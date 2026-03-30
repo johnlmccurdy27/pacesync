@@ -56,6 +56,9 @@ export async function POST(request: Request) {
         email,
         password: hashedPassword,
         role: invite ? 'athlete' : (role || 'coach'),
+        isAthlete: invite ? true : false,
+        isCoach: invite ? false : true,
+        hasCompletedOnboarding: invite ? false : true,
         clubName: clubName || null,
         discipline: discipline || null
       }
