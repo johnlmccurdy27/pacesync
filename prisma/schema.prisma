@@ -37,6 +37,9 @@ model User {
   sweatstackUserId String?           @unique
   sweatstackConnectedAt DateTime?
 
+  // Onboarding
+  hasCompletedOnboarding Boolean @default(false)
+
   // Activities
   activities       Activity[]
 }

@@ -23,6 +23,9 @@ export default async function DashboardRedirect() {
   if (user.role === 'coach') {
     redirect('/dashboard')
   } else if (user.role === 'athlete') {
+    if (!user.hasCompletedOnboarding) {
+      redirect('/athletes/onboarding')
+    }
     redirect('/athletes/dashboard')
   } else {
     redirect('/login')

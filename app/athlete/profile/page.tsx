@@ -5,6 +5,13 @@ import { useSession, signOut } from 'next-auth/react'
 import Sidebar from '@/app/components/Sidebar'
 import Image from 'next/image'
 
+type Coach = {
+  name: string | null
+  email: string
+  profilePicture: string | null
+  clubName: string | null
+}
+
 type Profile = {
   name: string | null
   email: string
@@ -13,6 +20,7 @@ type Profile = {
   discipline: string | null
   profilePicture: string | null
   watchConnections: { platform: string; accessToken: string }[]
+  coaches: Coach[]
 }
 
 type Club = { name: string; region: string; county: string; disciplines: string[] }
@@ -194,6 +202,30 @@ export default function AthleteProfilePage() {
               <span className="inline-block mt-2 text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full uppercase tracking-wide">Athlete</span>
             </div>
           </div>
+
+          {/* My Coach */}
+          {profile?.coaches && profile.coaches.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">My Coach</div>
+              <div className="space-y-3">
+                {profile.coaches.map(coach => (
+                  <div key={coach.email} className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-indigo-100 flex-shrink-0 flex items-center justify-center">
+                      {coach.profilePicture
+                        ? <img src={coach.profilePicture} alt={coach.name || 'Coach'} className="w-full h-full object-cover" />
+                        : <span className="text-lg font-bold text-indigo-600">{(coach.name || 'C').charAt(0).toUpperCase()}</span>
+                      }
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">{coach.name || 'Your Coach'}</div>
+                      {coach.clubName && <div className="text-sm text-gray-500">{coach.clubName}</div>}
+                    </div>
+                    <span className="ml-auto text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full flex-shrink-0">Coach</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Edit form */}
           <form onSubmit={handleSave} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5 mb-6">

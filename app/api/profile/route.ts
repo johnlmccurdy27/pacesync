@@ -11,12 +11,32 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { email: session.user.email },
-      select: { id: true, name: true, email: true, role: true, bio: true, clubName: true, discipline: true, profilePicture: true, createdAt: true, watchConnections: true }
+      select: {
+        id: true, name: true, email: true, role: true, bio: true, clubName: true,
+        discipline: true, profilePicture: true, createdAt: true, watchConnections: true,
+        athleteGroups: {
+          include: {
+            group: {
+              select: {
+                coach: { select: { name: true, email: true, profilePicture: true, clubName: true } }
+              }
+            }
+          }
+        }
+      }
     })
 
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    return NextResponse.json(user)
+    // Derive unique coaches from group memberships
+    const coachMap = new Map<string, { name: string | null; email: string; profilePicture: string | null; clubName: string | null }>()
+    user.athleteGroups?.forEach(m => {
+      const c = m.group.coach
+      if (!coachMap.has(c.email)) coachMap.set(c.email, c)
+    })
+    const coaches = Array.from(coachMap.values())
+
+    return NextResponse.json({ ...user, coaches })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to get profile' }, { status: 500 })
   }
