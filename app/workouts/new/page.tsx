@@ -322,14 +322,23 @@ export default function NewWorkoutPage() {
                           {block.blockType === 'repeat' && (
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold text-yellow-700">Repeat</span>
-                              <input
-                                type="number"
-                                min="1"
-                                max="20"
-                                className="w-16 px-2 py-1 border border-yellow-400 rounded text-sm"
-                                value={block.repeatCount || 1}
-                                onChange={(e) => updateBlockRepeatCount(block.id, parseInt(e.target.value) || 1)}
-                              />
+                              <div className="flex items-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => updateBlockRepeatCount(block.id, Math.max(1, (block.repeatCount || 1) - 1))}
+                                  className="w-8 h-8 rounded-lg border border-yellow-400 bg-white text-yellow-700 font-bold text-base flex items-center justify-center hover:bg-yellow-50 active:bg-yellow-100"
+                                >
+                                  −
+                                </button>
+                                <span className="w-8 text-center font-bold text-yellow-800">{block.repeatCount || 1}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateBlockRepeatCount(block.id, Math.min(20, (block.repeatCount || 1) + 1))}
+                                  className="w-8 h-8 rounded-lg border border-yellow-400 bg-white text-yellow-700 font-bold text-base flex items-center justify-center hover:bg-yellow-50 active:bg-yellow-100"
+                                >
+                                  +
+                                </button>
+                              </div>
                               <span className="text-sm text-yellow-700">times</span>
                             </div>
                           )}

@@ -258,30 +258,23 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
               {/* Visual Chart - Proportional Width AND Height */}
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Workout Structure</h4>
-                <div className="overflow-x-auto">
-                <div className="flex gap-1 h-32 items-end min-w-max">
+                <div className="flex gap-0.5 h-32 items-end w-full">
                   {normalizedSteps.map((step, index) => {
                     const originalStep = workout.steps[index]
-                    
-                    // Width proportional to normalized value
                     const widthPercent = (step.normalizedValue / totalNormalizedValue) * 100
-                    
-                    // Height proportional to max normalized value
                     const heightPercent = (step.normalizedValue / maxNormalizedValue) * 100
-                    
                     return (
-                      <div 
+                      <div
                         key={originalStep.id}
-                        className="rounded-t transition-all hover:opacity-80 cursor-pointer relative group"
+                        className="rounded-t transition-all hover:opacity-80 cursor-pointer relative group flex-shrink-0"
                         style={{
                           width: `${widthPercent}%`,
                           height: `${heightPercent}%`,
                           backgroundColor: getStepColor(originalStep),
-                          minWidth: '30px',
+                          minWidth: '4px',
                           minHeight: '25%'
                         }}
                       >
-                        {/* Tooltip */}
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                           <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
                             {originalStep.type}: {originalStep.value}{originalStep.unit} - {originalStep.zone || 'N/A'}
@@ -290,7 +283,6 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                       </div>
                     )
                   })}
-                </div>
                 </div>
                 <div className="flex justify-between mt-2 text-xs text-gray-500">
                   <span>Start</span>
