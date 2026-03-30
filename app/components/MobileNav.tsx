@@ -28,6 +28,7 @@ function getPageTitle(pathname: string) {
   if (pathname.match(/\/athletes\/groups\/.+/)) return 'Group'
   if (pathname.match(/\/athletes\/.+/) && !pathname.startsWith('/athletes/dashboard') && !pathname.startsWith('/athletes/schedule')) return 'Athlete'
   if (pathname === '/groups' || pathname.startsWith('/groups/')) return 'Groups'
+  if (pathname === '/athletes/groups') return 'My Groups'
   if (pathname === '/schedule' || pathname === '/athletes/schedule') return 'Schedule'
   if (pathname === '/profile' || pathname === '/athlete/profile') return 'My Profile'
   if (pathname === '/admin') return 'Admin'
@@ -151,7 +152,7 @@ export default function MobileNav() {
   const athleteNav = [
     { href: '/athletes/dashboard', label: 'Home', Icon: HomeIcon },
     { href: '/athletes/schedule', label: 'Schedule', Icon: ScheduleIcon },
-    { href: '/athlete/profile', label: 'Profile', Icon: ProfileIcon },
+    { href: '/athletes/groups', label: 'Groups', Icon: GroupsIcon },
   ]
 
   const nav = isAthlete ? athleteNav : coachNav
