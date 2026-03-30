@@ -135,7 +135,7 @@ export default function SchedulePage() {
       const res = await fetch('/api/assignments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workoutId: selectedWorkout, groupId: selectedGroup, scheduledFor: selectedDate.toISOString() })
+        body: JSON.stringify({ workoutId: selectedWorkout, groupId: selectedGroup, scheduledFor: `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}` })
       })
       if (res.ok) {
         setShowAssignModal(false)

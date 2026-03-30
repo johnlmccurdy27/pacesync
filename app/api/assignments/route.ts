@@ -90,7 +90,8 @@ export async function POST(request: Request) {
       data: {
         workoutId,
         groupId,
-        scheduledFor: new Date(scheduledFor)
+        // Store as noon UTC so the date is unambiguous regardless of server/client timezone
+        scheduledFor: new Date(`${scheduledFor.split('T')[0]}T12:00:00.000Z`)
       },
       include: {
         workout: true,
