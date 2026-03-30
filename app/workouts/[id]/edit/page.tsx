@@ -168,8 +168,10 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
   const moveBlock = (index: number, dir: -1 | 1) => {
     const next = index + dir
     if (next < 0 || next >= blocks.length) return
-    const nb = [...blocks];
-    [nb[index], nb[next]] = [nb[next], nb[index]]
+    const nb = [...blocks]
+    const tmp = nb[index]
+    nb[index] = nb[next]
+    nb[next] = tmp
     setBlocks(nb)
   }
 
