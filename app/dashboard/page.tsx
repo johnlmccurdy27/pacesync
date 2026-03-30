@@ -51,10 +51,10 @@ export default async function DashboardPage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar userName={session.user?.name || session.user?.email || undefined} />
       
-      <main className="flex-1 lg:ml-64 w-full">
+      <main className="flex-1 lg:ml-64 min-w-0">
         {/* Top Bar */}
         <div className="px-4 lg:px-8 py-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-900 hidden lg:block">Dashboard</h1>
           <Link
             href="/workouts/new"
             className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition"

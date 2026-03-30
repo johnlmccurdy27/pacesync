@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+html, body {
+  overflow-x: hidden;
+}
+
+@media (max-width: 1023px) {
+  main {
+    padding-top: 56px;
+    padding-bottom: 100px;
+  }
+}
+
 h1 {
   font-family: var(--font-outfit), sans-serif;
   font-weight: 700;

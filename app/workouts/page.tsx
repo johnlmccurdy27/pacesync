@@ -30,9 +30,9 @@ export default async function WorkoutsPage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar userName={session.user?.name || session.user?.email || undefined} />
 
-      <main className="flex-1 lg:ml-64 w-full">
+      <main className="flex-1 lg:ml-64 min-w-0">
         <div className="px-4 lg:px-8 py-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Workouts</h1>
+          <h1 className="text-2xl font-bold text-gray-900 hidden lg:block">Workouts</h1>
           <div className="flex items-center gap-3">
             <WorkoutLibraryDropdown workouts={libraryWorkouts} />
             <Link
@@ -70,7 +70,7 @@ export default async function WorkoutsPage() {
                   >
                     <div className="flex justify-between items-start mb-3">
                       <h3 className="text-lg font-semibold text-gray-900">{workout.name}</h3>
-                      <span className="text-sm text-gray-400 flex-shrink-0 ml-4">
+                      <span className="hidden md:block text-sm text-gray-400 flex-shrink-0 ml-4">
                         Created by Coach {workout.coach.name ?? workout.coach.email} on {new Date(workout.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                       </span>
                     </div>

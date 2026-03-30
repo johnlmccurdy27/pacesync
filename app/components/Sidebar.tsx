@@ -7,10 +7,10 @@ import { usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import LogoIcon from './logo.svg';
 import { APP_VERSION } from '@/lib/version';
+import MobileNav from './MobileNav';
 
 export default function Sidebar({ userName }: { userName?: string }) {
   const pathname = usePathname()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { data: session } = useSession()
   const role = session?.user?.role || 'coach'
   const isAthlete = role === 'athlete'
@@ -54,26 +54,11 @@ export default function Sidebar({ userName }: { userName?: string }) {
 
   return (
     <>
-      {/* Mobile toggle */}
-      <button
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-xl shadow-lg"
-        aria-label="Toggle menu"
-      >
-        {isMobileMenuOpen
-          ? <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          : <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-        }
-      </button>
-
-      {isMobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setIsMobileMenuOpen(false)} />
-      )}
+      <MobileNav />
 
       {/* Sidebar — floating card with rounded corners */}
       <aside
-        className={`fixed left-4 top-4 w-56 flex flex-col z-40 transition-transform duration-300 rounded-2xl overflow-hidden shadow-2xl
-          ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-[calc(100%+16px)] lg:translate-x-0'}`}
+        className="fixed left-4 top-4 w-56 flex flex-col z-40 rounded-2xl overflow-hidden shadow-2xl -translate-x-[calc(100%+16px)] lg:translate-x-0"
         style={{
           background: 'linear-gradient(180deg, #3d52d4 0%, #1a1f6e 100%)',
           height: 'calc(100vh - 32px)',
@@ -84,7 +69,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
           <Link
             href={isAthlete ? '/athletes/dashboard' : '/dashboard'}
             className="flex justify-center hover:opacity-90 transition-opacity"
-            onClick={() => setIsMobileMenuOpen(false)}
+
           >
             <div className="relative w-32 h-32 flex items-center justify-center transform scale-150 -mt-6 -mb-4">
               <Image src={LogoIcon} alt="Logo" width={300} height={300} className="object-contain" priority style={{ mixBlendMode: 'screen' }} />
@@ -116,7 +101,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
               <Link
                 key={href}
                 href={href}
-                onClick={() => setIsMobileMenuOpen(false)}
+    
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1 ${
                   isActive(href)
                     ? 'bg-white text-indigo-700 shadow-md font-semibold'
@@ -134,7 +119,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
               <div className="text-xs font-semibold text-indigo-300/70 px-3 mb-2 uppercase tracking-wider">Admin</div>
               <Link
                 href="/admin"
-                onClick={() => setIsMobileMenuOpen(false)}
+    
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1 ${
                   isActive('/admin')
                     ? 'bg-white text-indigo-700 shadow-md font-semibold'
@@ -153,7 +138,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
             <div className="text-xs font-semibold text-indigo-300/70 px-3 mb-2 uppercase tracking-wider">Settings</div>
             <Link
               href="/integrations"
-              onClick={() => setIsMobileMenuOpen(false)}
+  
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1 ${
                 isActive('/integrations')
                   ? 'bg-white text-indigo-700 shadow-md font-semibold'
@@ -172,7 +157,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
         <div className="p-3 border-t border-white/10">
           <Link
             href={profileHref}
-            onClick={() => setIsMobileMenuOpen(false)}
+
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/10 transition mb-1"
           >
             <div className="w-8 h-8 rounded-full flex-shrink-0 overflow-hidden bg-white/20 flex items-center justify-center ring-2 ring-yellow-400">

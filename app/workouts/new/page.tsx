@@ -210,10 +210,10 @@ export default function NewWorkoutPage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       
-      <main className="flex-1 lg:ml-64 w-full">
+      <main className="flex-1 lg:ml-64 min-w-0">
         {/* Top Bar */}
         <div className="px-4 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">Create Workout</h1>
+          <h1 className="text-2xl font-bold text-gray-900 hidden lg:block">Create Workout</h1>
         </div>
 
         <div className="p-4 lg:p-8 max-w-5xl mx-auto">
@@ -264,9 +264,9 @@ export default function NewWorkoutPage() {
 
             {/* Workout Builder */}
             <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <div className="flex justify-between items-center mb-4">
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                 <h3 className="text-lg font-semibold text-gray-900">Workout Structure</h3>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
                     onClick={addSingleStep}
@@ -373,7 +373,7 @@ export default function NewWorkoutPage() {
                                 {stepIndex + 1}
                               </div>
                               
-                              <div className="flex-1 grid grid-cols-4 gap-2">
+                              <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
                                 {/* Type */}
                                 <div>
                                   <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>

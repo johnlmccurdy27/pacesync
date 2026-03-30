@@ -97,9 +97,9 @@ export default async function AthleteSchedulePage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar userName={user.name || user.email} />
 
-      <main className="flex-1 lg:ml-64 w-full">
+      <main className="flex-1 lg:ml-64 min-w-0">
         <div className="px-4 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">My Schedule</h1>
+          <h1 className="text-2xl font-bold text-gray-900 hidden lg:block">My Schedule</h1>
         </div>
 
         <div className="px-4 lg:px-8 pb-8 max-w-2xl space-y-4">

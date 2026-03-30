@@ -207,7 +207,7 @@ export default function GroupDetailPage({ params }: { params: Promise<{ id: stri
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
         
-        <main className="flex-1 lg:ml-64 w-full">
+        <main className="flex-1 lg:ml-64 min-w-0">
           {/* Top Bar */}
           <div className="px-4 lg:px-8 py-6">
             <Link 

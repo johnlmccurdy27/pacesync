@@ -244,13 +244,13 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
         
-        <main className="flex-1 lg:ml-64 w-full">
+        <main className="flex-1 lg:ml-64 min-w-0">
           <div className="p-4 lg:p-8 max-w-4xl mx-auto pt-6">
             {/* Workout Header */}
             <div className="bg-white rounded-xl p-6 border border-gray-200 mb-6">
               <div className="flex justify-between items-start mb-4">
                 <h1 className="text-2xl font-bold text-gray-900 mb-1">{workout.name}</h1>
-                <span className="text-sm text-gray-400 flex-shrink-0 ml-4">
+                <span className="hidden md:block text-sm text-gray-400 flex-shrink-0 ml-4">
                   Created by Coach {workout.coach?.name ?? workout.coach?.email} on {new Date(workout.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
               </div>
@@ -258,7 +258,8 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
               {/* Visual Chart - Proportional Width AND Height */}
               <div className="mb-6">
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Workout Structure</h4>
-                <div className="flex gap-1 h-32 items-end">
+                <div className="overflow-x-auto">
+                <div className="flex gap-1 h-32 items-end min-w-max">
                   {normalizedSteps.map((step, index) => {
                     const originalStep = workout.steps[index]
                     
@@ -289,6 +290,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                       </div>
                     )
                   })}
+                </div>
                 </div>
                 <div className="flex justify-between mt-2 text-xs text-gray-500">
                   <span>Start</span>
@@ -342,7 +344,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                           <div className="flex-shrink-0 w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-semibold">
                             {n}
                           </div>
-                          <div className="flex-1 grid grid-cols-4 gap-4">
+                          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
                             <div>
                               <div className="text-xs text-gray-500 mb-1">Type</div>
                               <div className="font-medium text-gray-900 capitalize">{group.step.type}</div>
@@ -382,7 +384,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                               <div className="flex-shrink-0 w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xs font-semibold">
                                 {stepIndex + 1}
                               </div>
-                              <div className="flex-1 grid grid-cols-4 gap-4">
+                              <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
                                 <div>
                                   <div className="text-xs text-gray-500 mb-0.5">Type</div>
                                   <div className="font-medium text-gray-900 capitalize text-sm">{step.type}</div>
@@ -411,7 +413,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
             </div>
 
             {/* Actions */}
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={handleDownloadFIT}
                 disabled={downloading}

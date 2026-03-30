@@ -134,7 +134,7 @@ export default function AdminPage() {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
-      <main className="flex-1 lg:ml-64 w-full">
+      <main className="flex-1 lg:ml-64 min-w-0">
         <div className="px-4 lg:px-8 py-6 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Admin — All Users</h1>
           <div className="flex items-center gap-3">

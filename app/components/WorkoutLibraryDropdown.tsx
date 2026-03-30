@@ -37,7 +37,7 @@ export default function WorkoutLibraryDropdown({ workouts }: { workouts: Workout
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+        <div className="absolute left-0 sm:left-auto sm:right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-2rem)] bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
           <div className="p-3 border-b border-gray-100">
             <input
               autoFocus

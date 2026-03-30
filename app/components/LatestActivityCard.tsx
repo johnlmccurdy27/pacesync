@@ -80,7 +80,7 @@ export default function LatestActivityCard() {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden flex flex-col md:flex-row">
       {/* Info — left side with padding */}
       <div className="flex-1 min-w-0 p-6">
         <h3 className="font-semibold text-gray-900 mb-4">Latest Activity</h3>
@@ -139,7 +139,7 @@ export default function LatestActivityCard() {
       </div>
 
       {/* Map — flush to card edges */}
-      <div className="w-1/2 flex-shrink-0">
+      <div className="h-48 md:h-auto md:w-1/2 flex-shrink-0">
         {activity.coordinates && activity.coordinates.length > 0
           ? <ActivityMap coordinates={activity.coordinates} />
           : <div className="w-full h-full bg-gray-50 flex items-center justify-center"><p className="text-xs text-gray-400">No route data</p></div>

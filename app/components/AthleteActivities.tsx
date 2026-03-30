@@ -109,7 +109,8 @@ export default function AthleteActivities({ athleteId }: { athleteId: string }) 
           No activities yet — click "Sync from Garmin" to fetch recent activities.
         </div>
       ) : (
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[640px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-100">
               <th className="text-left px-6 py-3 font-semibold text-gray-600">Activity</th>
@@ -165,6 +166,7 @@ export default function AthleteActivities({ athleteId }: { athleteId: string }) 
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

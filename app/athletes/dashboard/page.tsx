@@ -36,10 +36,10 @@ export default async function AthleteDashboardPage() {
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar userName={user.name || user.email} />
 
-      <main className="flex-1 lg:ml-64 w-full">
+      <main className="flex-1 lg:ml-64 min-w-0">
         <div className="px-4 lg:px-8 py-6 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">My Dashboard</h1>
-          <Link href="/athlete/profile" className="text-sm text-indigo-600 hover:underline font-medium">View Profile</Link>
+          <h1 className="text-2xl font-bold text-gray-900 hidden lg:block">My Dashboard</h1>
+          <Link href="/athlete/profile" className="text-sm text-indigo-600 hover:underline font-medium hidden lg:block">View Profile</Link>
         </div>
 
         <div className="p-4 lg:p-8">
@@ -130,7 +130,21 @@ export default async function AthleteDashboardPage() {
                   </p>
                   {nextAssignment.workout.notes && <p className="text-gray-500 text-sm mt-2">{nextAssignment.workout.notes}</p>}
                 </div>
-                <div className="border-t border-gray-100 pt-4 flex gap-6">
+                <div className="border-t border-gray-100 pt-4 flex flex-col md:flex-row gap-4 md:gap-6">
+                  {/* Bar chart — shown first on mobile so it's like a preview */}
+                  <div className="flex gap-0.5 h-20 md:h-24 items-end md:w-48 md:flex-shrink-0 order-first md:order-last">
+                    {normalized.map(({ step, nv }) => (
+                      <div
+                        key={step.id}
+                        className="rounded-t flex-1"
+                        style={{
+                          height: `${(nv / maxNv) * 100}%`,
+                          backgroundColor: getStepColor(step),
+                          minHeight: '15%'
+                        }}
+                      />
+                    ))}
+                  </div>
                   {/* Steps list */}
                   <div className="flex-1 space-y-2">
                     {steps.slice(0, 5).map((step, i) => (
@@ -144,20 +158,6 @@ export default async function AthleteDashboardPage() {
                     {steps.length > 5 && (
                       <p className="text-xs text-gray-400 pl-8">+{steps.length - 5} more steps</p>
                     )}
-                  </div>
-                  {/* Bar chart */}
-                  <div className="w-48 flex-shrink-0 flex gap-0.5 h-24 items-end">
-                    {normalized.map(({ step, nv }) => (
-                      <div
-                        key={step.id}
-                        className="rounded-t flex-1"
-                        style={{
-                          height: `${(nv / maxNv) * 100}%`,
-                          backgroundColor: getStepColor(step),
-                          minHeight: '15%'
-                        }}
-                      />
-                    ))}
                   </div>
                 </div>
               </div>

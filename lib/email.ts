@@ -59,9 +59,10 @@ export async function sendWelcomeEmail(to: string, name: string | null): Promise
 export async function sendAthleteInviteEmail(
   to: string,
   coachName: string,
-  token: string
+  token: string,
+  athleteName?: string
 ): Promise<void> {
-  const inviteUrl = `${BASE_URL}/signup?invite=${token}`
+  const inviteUrl = `${BASE_URL}/signup?invite=${token}${athleteName ? `&name=${encodeURIComponent(athleteName)}` : ''}`
   await getResend().emails.send({
     from: FROM,
     to,

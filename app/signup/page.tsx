@@ -28,9 +28,10 @@ function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const inviteToken = searchParams.get('invite')
+  const prefillName = searchParams.get('name') || ''
 
   const [formData, setFormData] = useState({
-    name: '',
+    name: prefillName,
     email: '',
     password: '',
     role: 'coach',

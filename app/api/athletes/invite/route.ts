@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only coaches can send invites' }, { status: 403 })
     }
 
-    const { email } = await request.json()
+    const { email, name } = await request.json()
 
     if (!email || typeof email !== 'string') {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       data: { email, coachId: coach.id, token, expiresAt }
     })
 
-    await sendAthleteInviteEmail(email, coach.name ?? coach.email, token)
+    await sendAthleteInviteEmail(email, coach.name ?? coach.email, token, name || undefined)
 
     return NextResponse.json({ invite: { id: invite.id, email: invite.email } })
   } catch (error) {

@@ -32,35 +32,37 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar userName={coach.name || coach.email} />
 
-      <main className="flex-1 lg:ml-64 w-full">
+      <main className="flex-1 lg:ml-64 min-w-0">
         <div className="px-4 lg:px-8 py-6">
           <Link href="/athletes" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium">← Back to Athletes</Link>
         </div>
 
         <div className="p-4 lg:p-8 max-w-4xl space-y-6">
           {/* Header */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6 flex items-center gap-6">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-indigo-100 flex-shrink-0 flex items-center justify-center">
-              {athlete.profilePicture ? (
-                <img src={athlete.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-4xl font-bold text-indigo-600">
-                  {(athlete.name || athlete.email).charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-gray-900">{athlete.name || 'Unnamed Athlete'}</h1>
-              <p className="text-gray-500 text-sm">{athlete.email}</p>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {coachGroups.map(m => (
-                  <span key={m.id} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{m.group.name}</span>
-                ))}
+          <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-4 flex-1 min-w-0">
+              <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-full overflow-hidden bg-indigo-100 flex-shrink-0 flex items-center justify-center">
+                {athlete.profilePicture ? (
+                  <img src={athlete.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-3xl sm:text-4xl font-bold text-indigo-600">
+                    {(athlete.name || athlete.email).charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">{athlete.name || 'Unnamed Athlete'}</h1>
+                <p className="text-gray-500 text-sm truncate">{athlete.email}</p>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {coachGroups.map(m => (
+                    <span key={m.id} className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-medium">{m.group.name}</span>
+                  ))}
+                </div>
               </div>
             </div>
             {/* Training Load */}
-            <div className="flex-shrink-0 flex items-center gap-4 pl-6 border-l border-gray-100">
-              <div className="relative w-20 h-20">
+            <div className="flex items-center gap-4 sm:pl-6 sm:border-l sm:border-gray-100 flex-shrink-0">
+              <div className="relative w-16 h-16 sm:w-20 sm:h-20">
                 <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                   <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f4f6" strokeWidth="10" />
                   <circle cx="50" cy="50" r="40" fill="none" stroke="#3730a3" strokeWidth="10"
@@ -68,7 +70,7 @@ export default async function AthleteDetailPage({ params }: { params: Promise<{ 
                     strokeLinecap="round" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xl font-bold text-gray-900">68</span>
+                  <span className="text-lg sm:text-xl font-bold text-gray-900">68</span>
                   <span className="text-xs text-gray-400">/100</span>
                 </div>
               </div>

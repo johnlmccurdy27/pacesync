@@ -90,9 +90,15 @@ export default function SchedulePage() {
   const [syncing, setSyncing] = useState<string | null>(null)
   const [syncMessage, setSyncMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
-  // View state
+  // View state — default to day on mobile
   const [view, setView] = useState<'month' | 'day'>('month')
   const [dayViewDate, setDayViewDate] = useState(new Date())
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setView('day')
+    }
+  }, [])
   const [selectedWorkoutDetail, setSelectedWorkoutDetail] = useState<WorkoutDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
 
@@ -247,22 +253,22 @@ export default function SchedulePage() {
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
 
-        <main className="flex-1 lg:ml-64 w-full">
+        <main className="flex-1 lg:ml-64 min-w-0">
           {/* Top Bar */}
-          <div className="px-4 lg:px-8 py-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">Training Schedule</h1>
-            <div className="flex items-center gap-3">
+          <div className="px-4 lg:px-8 py-6 flex justify-between items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900 hidden lg:block">Training Schedule</h1>
+            <div className="flex items-center gap-2 flex-wrap">
               {/* View toggle */}
               <div className="flex bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setView('month')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'month' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${view === 'month' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   Month
                 </button>
                 <button
                   onClick={() => { setView('day'); setSelectedWorkoutDetail(null) }}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${view === 'day' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition ${view === 'day' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
                 >
                   Day
                 </button>
@@ -272,7 +278,7 @@ export default function SchedulePage() {
                 className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2 transition"
               >
                 <span>+</span>
-                New Workout
+                <span className="hidden sm:inline">New Workout</span>
               </Link>
             </div>
           </div>
@@ -289,26 +295,26 @@ export default function SchedulePage() {
             {/* ── MONTH VIEW ── */}
             {view === 'month' && (
               <div className="bg-white rounded-xl p-6 border border-gray-200">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900">{monthName}</h2>
-                  <div className="flex gap-2">
-                    <button onClick={previousMonth} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">← Previous</button>
-                    <button onClick={() => setCurrentDate(new Date())} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Today</button>
-                    <button onClick={nextMonth} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">Next →</button>
+                <div className="flex items-center justify-between mb-4 gap-2">
+                  <h2 className="text-lg lg:text-2xl font-bold text-gray-900">{monthName}</h2>
+                  <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                    <button onClick={previousMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">←</button>
+                    <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">Today</button>
+                    <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">→</button>
                     {isAdmin && assignments.length > 0 && (
                       <>
                         <button
                           onClick={() => handleSync('garmin', assignments.map(a => a.id), 'month')}
                           disabled={!!syncing}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50 text-sm"
+                          className="hidden sm:block px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition disabled:opacity-50 text-sm"
                         >
-                          {syncing === 'garmin-month' ? 'Syncing…' : 'Sync Month → Garmin'}
+                          {syncing === 'garmin-month' ? 'Syncing…' : 'Sync → Garmin'}
                         </button>
                         <span
                           title="COROS workout sync requires official API access (coming soon)"
-                          className="px-4 py-2 bg-gray-200 text-gray-400 rounded-lg font-semibold text-sm cursor-not-allowed"
+                          className="hidden sm:block px-3 py-2 bg-gray-200 text-gray-400 rounded-lg font-semibold text-sm cursor-not-allowed"
                         >
-                          Sync Month → COROS
+                          Sync → COROS
                         </span>
                       </>
                     )}
@@ -340,7 +346,7 @@ export default function SchedulePage() {
                     return (
                       <div
                         key={date.toISOString()}
-                        className={`aspect-square border rounded-lg p-2 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
+                        className={`min-h-[52px] lg:aspect-square border rounded-lg p-1 lg:p-2 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
                       >
                         <div className="flex flex-col h-full">
                           <div className="flex items-center justify-between mb-1">
@@ -384,10 +390,10 @@ export default function SchedulePage() {
 
             {/* ── DAY VIEW ── */}
             {view === 'day' && (
-              <div className="flex gap-6 items-start">
+              <div className="flex flex-col lg:flex-row gap-6 items-start">
 
                 {/* Left panel — day + assignments */}
-                <div className="w-80 flex-shrink-0 space-y-4">
+                <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
                   <div className="bg-white rounded-xl border border-gray-200 p-6">
                     {/* Day navigation */}
                     <div className="flex items-center justify-between mb-5 gap-3">
@@ -539,7 +545,7 @@ export default function SchedulePage() {
                                 {group.steps.map((step, stepIndex) => (
                                   <div key={stepIndex} className={`flex items-center gap-4 px-4 py-3 ${stepIndex < group.steps.length - 1 ? 'border-b border-yellow-200' : ''}`}>
                                     <div className="flex-shrink-0 w-6 h-6 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-xs font-semibold">{stepIndex + 1}</div>
-                                    <div className="flex-1 grid grid-cols-4 gap-3">
+                                    <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
                                       <div><div className="text-xs text-gray-500 mb-0.5">Type</div><div className="font-medium text-gray-900 capitalize text-sm">{step.type}</div></div>
                                       <div><div className="text-xs text-gray-500 mb-0.5">Duration</div><div className="font-medium text-gray-900 text-sm">{step.value} {step.unit}</div></div>
                                       <div><div className="text-xs text-gray-500 mb-0.5">Measure</div><div className="font-medium text-gray-900 capitalize text-sm">{step.measure}</div></div>
