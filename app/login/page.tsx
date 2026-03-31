@@ -1,6 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+
+const TAGLINES = [
+  'Bring Structur to your training.',
+  'Your coach. Your plan. Your watch.',
+  'Structured training, delivered.',
+  'Every session, perfectly planned.',
+  'Train smart. Race faster.',
+  'From coach to watch in seconds.',
+  'Human coaching with Intelligent Analysis.',
+]
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
@@ -13,6 +23,7 @@ export default function LoginPage() {
     password: ''
   })
   const [error, setError] = useState('')
+  const tagline = useRef(TAGLINES[Math.floor(Math.random() * TAGLINES.length)]).current
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,7 +61,7 @@ export default function LoginPage() {
             <Image src={LogoIcon} alt="Structur" width={160} height={160} className="object-contain scale-150" />
           </div>
         </div>
-        <p className="text-indigo-200 mb-6 text-center">Log in to your Structur account</p>
+        <p className="text-indigo-200 mb-6 text-center">{tagline}</p>
 
         {error && (
           <div className="bg-red-500/20 text-red-200 border border-red-400/30 p-3 rounded-lg mb-4 text-sm">

@@ -2,6 +2,7 @@ import { auth } from '@/app/api/auth/[...nextauth]/route'
 import { redirect } from 'next/navigation'
 import Sidebar from '@/app/components/Sidebar'
 import LatestActivityCard from '@/app/components/LatestActivityCard'
+import RotatingTagline from '@/app/components/RotatingTagline'
 import Link from 'next/link'
 import { PrismaClient } from '@prisma/client'
 
@@ -69,9 +70,7 @@ export default async function DashboardPage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               Welcome back, {session.user?.name?.split(' ')[0]}! 👋
             </h2>
-            <p className="text-gray-600">
-              Your Structur dashboard is ready. Let's get your athletes moving.
-            </p>
+            <RotatingTagline className="text-gray-600" />
           </div>
 
           {/* Stats Grid */}

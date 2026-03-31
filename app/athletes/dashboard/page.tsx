@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { PrismaClient } from '@prisma/client'
 import Sidebar from '@/app/components/Sidebar'
 import LatestActivityCard from '@/app/components/LatestActivityCard'
+import RotatingTagline from '@/app/components/RotatingTagline'
 import Link from 'next/link'
 
 const prisma = new PrismaClient()
@@ -44,7 +45,7 @@ export default async function AthleteDashboardPage() {
             <h2 className="text-3xl font-bold text-gray-900 mb-1">
               Welcome back, {user.name?.split(' ')[0] || 'Athlete'}!
             </h2>
-            <p className="text-gray-500 text-sm">Here's your training overview</p>
+            <RotatingTagline className="text-gray-500 text-sm" />
           </div>
 
           {/* Device connection prompt */}
