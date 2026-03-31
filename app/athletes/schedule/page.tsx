@@ -43,6 +43,20 @@ type StepGroup =
   | { kind: 'single'; step: Step }
   | { kind: 'repeat'; steps: Step[]; count: number }
 
+type WeatherDay = { date: string; code: number; maxTemp: number }
+
+function weatherEmoji(code: number): string {
+  if (code === 0) return '☀️'
+  if (code <= 2) return '⛅'
+  if (code <= 3) return '☁️'
+  if (code === 45 || code === 48) return '🌫️'
+  if (code <= 67) return '🌧️'
+  if (code <= 77) return '❄️'
+  if (code <= 82) return '🌦️'
+  if (code <= 86) return '🌨️'
+  return '⛈️'
+}
+
 function groupSteps(steps: Step[]): StepGroup[] {
   const groups: StepGroup[] = []
   let i = 0
@@ -77,6 +91,7 @@ export default function AthleteSchedulePage() {
   const [dayViewDate, setDayViewDate] = useState(new Date())
   const [selectedWorkoutDetail, setSelectedWorkoutDetail] = useState<WorkoutDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [weather, setWeather] = useState<Record<string, WeatherDay>>({})
 
   // Default to day view on mobile
   useEffect(() => {
@@ -88,6 +103,31 @@ export default function AthleteSchedulePage() {
   useEffect(() => {
     loadData()
   }, [currentDate])
+
+  // Fetch weather via Open-Meteo (no API key needed)
+  useEffect(() => {
+    const fetchWeather = (lat: number, lon: number) => {
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max&timezone=auto&forecast_days=16`)
+        .then(r => r.json())
+        .then(data => {
+          const map: Record<string, WeatherDay> = {}
+          data.daily.time.forEach((date: string, i: number) => {
+            map[date] = { date, code: data.daily.weathercode[i], maxTemp: Math.round(data.daily.temperature_2m_max[i]) }
+          })
+          setWeather(map)
+        })
+        .catch(() => {})
+    }
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => fetchWeather(coords.latitude, coords.longitude),
+        () => fetchWeather(51.5, -0.12) // fallback: London
+      )
+    } else {
+      fetchWeather(51.5, -0.12)
+    }
+  }, [])
 
   // Auto-select first workout when day changes or assignments load
   useEffect(() => {
@@ -243,9 +283,23 @@ export default function AthleteSchedulePage() {
                       className={`min-h-[44px] lg:aspect-square border rounded-lg p-1 lg:p-2 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
                     >
                       <div className="flex flex-col h-full">
-                        <span className={`text-sm font-semibold block mb-1 ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>
-                          {date.getDate()}
-                        </span>
+                        <div className="flex items-start justify-between mb-1">
+                          <span className={`text-sm font-semibold ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>
+                            {date.getDate()}
+                          </span>
+                          {!isPast && (() => {
+                            const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                            const w = weather[dateKey]
+                            if (!w) return null
+                            return (
+                              <div className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
+                                <span className="text-xs leading-none">{weatherEmoji(w.code)}</span>
+                                <span className="text-gray-300 text-xs leading-none">|</span>
+                                <span className="text-xs leading-none text-gray-500">{w.maxTemp}°</span>
+                              </div>
+                            )
+                          })()}
+                        </div>
                         <div className="flex-1 overflow-y-auto space-y-1">
                           {dayA.map(a => (
                             <div
