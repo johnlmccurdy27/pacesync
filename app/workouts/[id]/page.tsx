@@ -13,6 +13,8 @@ type Step = {
   unit: string
   zone: string | null
   position: number
+  repeatCount: number | null
+  repeatGroup: string | null
 }
 
 type Workout = {
@@ -30,8 +32,31 @@ type StepGroup =
 
 function groupSteps(steps: Step[]): StepGroup[] {
   const groups: StepGroup[] = []
-  let i = 0
 
+  // New format: use repeatGroup field if present
+  if (steps.some(s => s.repeatGroup != null)) {
+    let i = 0
+    while (i < steps.length) {
+      const step = steps[i]
+      if (!step.repeatGroup) {
+        groups.push({ kind: 'single', step })
+        i++
+      } else {
+        const groupId = step.repeatGroup
+        const count = step.repeatCount ?? 1
+        const groupStepsList: Step[] = []
+        while (i < steps.length && steps[i].repeatGroup === groupId) {
+          groupStepsList.push(steps[i])
+          i++
+        }
+        groups.push({ kind: 'repeat', steps: groupStepsList, count })
+      }
+    }
+    return groups
+  }
+
+  // Legacy fallback: heuristic pattern matching for old workouts
+  let i = 0
   const stepsMatch = (a: Step, b: Step) =>
     a.type === b.type && a.value === b.value && a.unit === b.unit && a.measure === b.measure
 
@@ -216,26 +241,34 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
     )
   }
 
-  // Calculate totals with proper unit conversion
-  const totalDistance = workout.steps
+  // Group steps for display and calculations
+  const stepGroups = groupSteps(workout.steps)
+
+  // Expand groups into flat list for chart and totals (repeat blocks multiplied out)
+  const expandedSteps: (Step & { normalizedValue: number })[] = []
+  for (const group of stepGroups) {
+    const count = group.kind === 'repeat' ? group.count : 1
+    const stepList = group.kind === 'repeat' ? group.steps : [group.step]
+    for (let r = 0; r < count; r++) {
+      for (const step of stepList) {
+        const nv = step.measure === 'distance'
+          ? convertToKm(step.value, step.unit)
+          : convertToMinutes(step.value, step.unit) * 0.5
+        expandedSteps.push({ ...step, normalizedValue: nv })
+      }
+    }
+  }
+
+  // Calculate totals using expanded steps
+  const totalDistance = expandedSteps
     .filter(s => s.measure === 'distance')
     .reduce((sum, s) => sum + convertToKm(s.value, s.unit), 0)
 
-  const totalTime = workout.steps
+  const totalTime = expandedSteps
     .filter(s => s.measure === 'time')
     .reduce((sum, s) => sum + convertToMinutes(s.value, s.unit), 0)
 
-  // For chart: normalize all steps to a common unit for proportional display
-  const normalizedSteps = workout.steps.map(step => {
-    if (step.measure === 'distance') {
-      return { ...step, normalizedValue: convertToKm(step.value, step.unit) }
-    } else {
-      // For time-based steps, use minutes but scaled down for visual balance
-      // We'll make 1 minute = 0.5 km equivalent for chart purposes
-      return { ...step, normalizedValue: convertToMinutes(step.value, step.unit) * 0.5 }
-    }
-  })
-
+  const normalizedSteps = expandedSteps
   const totalNormalizedValue = normalizedSteps.reduce((sum, s) => sum + s.normalizedValue, 0)
   const maxNormalizedValue = Math.max(...normalizedSteps.map(s => s.normalizedValue))
 
@@ -260,23 +293,21 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                 <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Workout Structure</h4>
                 <div className="flex gap-0.5 h-32 items-end w-full">
                   {normalizedSteps.map((step, index) => {
-                    const originalStep = workout.steps[index]
-                    const widthPercent = (step.normalizedValue / totalNormalizedValue) * 100
                     const heightPercent = (step.normalizedValue / maxNormalizedValue) * 100
                     return (
                       <div
-                        key={originalStep.id}
+                        key={`${step.id}-${index}`}
                         className="rounded-t transition-all hover:opacity-80 cursor-pointer relative group"
                         style={{
                           flex: `${step.normalizedValue} 1 0%`,
                           height: `${heightPercent}%`,
-                          backgroundColor: getStepColor(originalStep),
+                          backgroundColor: getStepColor(step),
                           minHeight: '15%'
                         }}
                       >
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                           <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
-                            {originalStep.type}: {originalStep.value}{originalStep.unit} - {originalStep.zone || 'N/A'}
+                            {step.type}: {step.value}{step.unit} - {step.zone || 'N/A'}
                           </div>
                         </div>
                       </div>
@@ -293,7 +324,7 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
               <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200">
                 <div>
                   <div className="text-sm text-gray-600 mb-1">Total Steps</div>
-                  <div className="text-2xl font-bold text-indigo-600">{workout.steps.length}</div>
+                  <div className="text-2xl font-bold text-indigo-600">{stepGroups.length}</div>
                 </div>
                 {totalDistance > 0 && (
                   <div>
@@ -324,9 +355,8 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
 
               <div className="space-y-3">
                 {(() => {
-                  const groups = groupSteps(workout.steps)
                   let singleCounter = 0
-                  return groups.map((group, groupIndex) => {
+                  return stepGroups.map((group, groupIndex) => {
                     if (group.kind === 'single') {
                       singleCounter++
                       const n = singleCounter
