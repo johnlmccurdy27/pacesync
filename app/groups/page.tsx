@@ -88,6 +88,92 @@ function GroupCard({ group, onEdit }: { group: Group; onEdit: (g: Group) => void
   )
 }
 
+function GroupForm({
+  form,
+  setForm,
+  saving,
+  onClose,
+  onSubmit,
+  submitLabel,
+}: {
+  form: GroupFormState
+  setForm: React.Dispatch<React.SetStateAction<GroupFormState>>
+  saving: boolean
+  onClose: () => void
+  onSubmit: (e: React.FormEvent) => void
+  submitLabel: string
+}) {
+  return (
+    <form onSubmit={onSubmit}>
+      <div className="space-y-4 mb-6">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Group Name *</label>
+          <input
+            type="text"
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="e.g. Spring Marathon Squad"
+            value={form.name}
+            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
+          <textarea
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            placeholder="Add a description..."
+            rows={2}
+            value={form.description}
+            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+          />
+        </div>
+        <div className="border-t border-gray-100 pt-4">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Race / Event</p>
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Event Name (optional)</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="e.g. London Marathon 2026"
+                value={form.raceName}
+                onChange={e => setForm(f => ({ ...f, raceName: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Race Date (optional)</label>
+              <input
+                type="date"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                value={form.raceDate}
+                onChange={e => setForm(f => ({ ...f, raceDate: e.target.value }))}
+              />
+              <p className="text-xs text-gray-400 mt-1">Group moves to archive after this date</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="flex gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={saving}
+          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={saving}
+          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
+        >
+          {saving ? 'Saving...' : submitLabel}
+        </button>
+      </div>
+    </form>
+  )
+}
+
 export default function GroupsPage() {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
@@ -168,76 +254,6 @@ export default function GroupsPage() {
   const active = groups.filter(g => !isArchived(g))
   const archived = groups.filter(g => isArchived(g))
 
-  const GroupForm = ({ onSubmit, submitLabel }: { onSubmit: (e: React.FormEvent) => void; submitLabel: string }) => (
-    <form onSubmit={onSubmit}>
-      <div className="space-y-4 mb-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Group Name *</label>
-          <input
-            type="text"
-            required
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="e.g. Spring Marathon Squad"
-            value={form.name}
-            onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Description (optional)</label>
-          <textarea
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-            placeholder="Add a description..."
-            rows={2}
-            value={form.description}
-            onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-          />
-        </div>
-        <div className="border-t border-gray-100 pt-4">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Race / Event</p>
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Event Name (optional)</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="e.g. London Marathon 2026"
-                value={form.raceName}
-                onChange={e => setForm(f => ({ ...f, raceName: e.target.value }))}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Race Date (optional)</label>
-              <input
-                type="date"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                value={form.raceDate}
-                onChange={e => setForm(f => ({ ...f, raceDate: e.target.value }))}
-              />
-              <p className="text-xs text-gray-400 mt-1">Group moves to archive after this date</p>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="flex gap-3">
-        <button
-          type="button"
-          onClick={closeModals}
-          disabled={saving}
-          className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          disabled={saving}
-          className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition disabled:opacity-50"
-        >
-          {saving ? 'Saving...' : submitLabel}
-        </button>
-      </div>
-    </form>
-  )
-
   return (
     <>
       <div className="flex min-h-screen bg-gray-50">
@@ -310,7 +326,7 @@ export default function GroupsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Create New Group</h3>
-            <GroupForm onSubmit={handleCreate} submitLabel="Create Group" />
+            <GroupForm form={form} setForm={setForm} saving={saving} onClose={closeModals} onSubmit={handleCreate} submitLabel="Create Group" />
           </div>
         </div>
       )}
@@ -320,7 +336,7 @@ export default function GroupsPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Edit Group</h3>
-            <GroupForm onSubmit={handleEdit} submitLabel="Save Changes" />
+            <GroupForm form={form} setForm={setForm} saving={saving} onClose={closeModals} onSubmit={handleEdit} submitLabel="Save Changes" />
           </div>
         </div>
       )}
