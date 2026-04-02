@@ -32,7 +32,8 @@ function getPageTitle(pathname: string) {
   if (pathname === '/schedule' || pathname === '/athletes/schedule') return 'Schedule'
   if (pathname === '/profile' || pathname === '/athlete/profile') return 'My Profile'
   if (pathname === '/admin') return 'Admin'
-return 'Structur'
+  if (pathname === '/messages') return 'Messages'
+  return 'Structur'
 }
 
 // ── Icons (filled = active, stroke = inactive) ────────────────────────────────
@@ -121,10 +122,25 @@ function GroupsIcon({ active }: { active: boolean }) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+function EnvelopeIcon({ active }: { active: boolean }) {
+  if (active) return (
+    <svg className="w-[22px] h-[22px] text-indigo-600" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z" />
+      <path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z" />
+    </svg>
+  )
+  return (
+    <svg className="w-[22px] h-[22px] text-gray-400" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+    </svg>
+  )
+}
+
 export default function MobileNav() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const [profilePicture, setProfilePicture] = useState<string | null>(null)
+  const [unreadCount, setUnreadCount] = useState(0)
 
   const role = (session?.user as any)?.role || 'coach'
   const isAthlete = role === 'athlete'
@@ -137,8 +153,17 @@ export default function MobileNav() {
         .then(r => r.json())
         .then(d => setProfilePicture(d.profilePicture || null))
         .catch(() => {})
+      fetch('/api/messages/unread')
+        .then(r => r.json())
+        .then(d => setUnreadCount(d.count || 0))
+        .catch(() => {})
     }
   }, [session?.user?.email])
+
+  // Clear unread count when navigating to messages
+  useEffect(() => {
+    if (pathname === '/messages') setUnreadCount(0)
+  }, [pathname])
 
   const coachNav = [
     { href: '/dashboard', label: 'Home', Icon: HomeIcon },
@@ -166,6 +191,14 @@ export default function MobileNav() {
         <span className="flex-1 font-bold text-gray-900 text-[15px] tracking-tight">
           {getPageTitle(pathname)}
         </span>
+        <Link href="/messages" className="relative flex-shrink-0">
+          <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" strokeWidth={1.6} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center">{unreadCount > 9 ? '9+' : unreadCount}</span>
+          )}
+        </Link>
         <Link href={profileHref} className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center overflow-hidden flex-shrink-0 ring-2 ring-indigo-100">
           {profilePicture
             ? <img src={profilePicture} alt="" className="w-full h-full object-cover" />

@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Sidebar from '@/app/components/Sidebar'
-import LatestActivityCard from '@/app/components/LatestActivityCard'
 
 type User = {
   id: string
@@ -149,10 +148,6 @@ export default function AdminPage() {
               {testEmailStatus === 'sending' ? 'Sending…' : testEmailStatus === 'sent' ? '✓ Email sent' : testEmailStatus === 'error' ? 'Failed' : 'Send test email'}
             </button>
           </div>
-        </div>
-
-        <div className="px-4 lg:px-8 pb-4">
-          <LatestActivityCard />
         </div>
 
         <div className="px-4 lg:px-8 pb-8">

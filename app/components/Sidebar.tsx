@@ -19,6 +19,7 @@ export default function Sidebar({ userName }: { userName?: string }) {
   const isAthleteRole = (session?.user as any)?.isAthlete === true
   const displayName = userName || session?.user?.name || session?.user?.email || 'User'
   const [profilePicture, setProfilePicture] = useState<string | null>(null)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
     if (session?.user?.email) {
@@ -26,8 +27,16 @@ export default function Sidebar({ userName }: { userName?: string }) {
         .then(r => r.json())
         .then(data => setProfilePicture(data.profilePicture || null))
         .catch(() => {})
+      fetch('/api/messages/unread')
+        .then(r => r.json())
+        .then(data => setUnreadMessages(data.count || 0))
+        .catch(() => {})
     }
   }, [session?.user?.email])
+
+  useEffect(() => {
+    if (pathname === '/messages') setUnreadMessages(0)
+  }, [pathname])
 
   const isActive = (path: string) => {
     if (path === '/dashboard' || path === '/athletes/dashboard') return pathname === path
@@ -41,11 +50,13 @@ export default function Sidebar({ userName }: { userName?: string }) {
     { href: '/athletes', label: 'Athletes', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
     { href: '/groups', label: 'Groups', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /> },
     { href: '/schedule', label: 'Schedule', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> },
+    { href: '/messages', label: 'Messages', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /> },
   ]
 
   const athleteNav = [
     { href: '/athletes/dashboard', label: 'Dashboard', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /> },
     { href: '/athletes/schedule', label: 'My Schedule', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> },
+    { href: '/messages', label: 'Messages', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /> },
     { href: '/athlete/profile', label: 'My Profile', icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /> },
   ]
 
@@ -101,7 +112,6 @@ export default function Sidebar({ userName }: { userName?: string }) {
               <Link
                 key={href}
                 href={href}
-    
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 mb-1 ${
                   isActive(href)
                     ? 'bg-white text-indigo-700 shadow-md font-semibold'
@@ -109,7 +119,12 @@ export default function Sidebar({ userName }: { userName?: string }) {
                 }`}
               >
                 <svg className={`w-5 h-5 flex-shrink-0 ${isActive(href) ? 'text-indigo-600' : 'text-indigo-300'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">{icon}</svg>
-                <span>{label}</span>
+                <span className="flex-1">{label}</span>
+                {label === 'Messages' && unreadMessages > 0 && (
+                  <span className="w-5 h-5 bg-indigo-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                    {unreadMessages > 9 ? '9+' : unreadMessages}
+                  </span>
+                )}
               </Link>
             ))}
           </div>

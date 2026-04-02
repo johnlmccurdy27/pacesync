@@ -42,6 +42,11 @@ model User {
 
   // Activities
   activities       Activity[]
+
+  // Messaging
+  coachThreads     MessageThread[] @relation("CoachThreads")
+  athleteThreads   MessageThread[] @relation("AthleteThreads")
+  sentMessages     Message[]       @relation("SentMessages")
 }
 
 model WatchConnection {
@@ -166,6 +171,30 @@ model Activity {
   syncedAt         DateTime  @default(now())
 
   @@unique([userId, garminActivityId])
+}
+
+model MessageThread {
+  id            String    @id @default(cuid())
+  coachId       String
+  coach         User      @relation("CoachThreads", fields: [coachId], references: [id], onDelete: Cascade)
+  athleteId     String
+  athlete       User      @relation("AthleteThreads", fields: [athleteId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+  lastMessageAt DateTime  @default(now())
+  messages      Message[]
+
+  @@unique([coachId, athleteId])
+}
+
+model Message {
+  id        String        @id @default(cuid())
+  threadId  String
+  thread    MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User          @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  body      String
+  createdAt DateTime      @default(now())
+  readAt    DateTime?
 }
 
 model DeletedUser {
