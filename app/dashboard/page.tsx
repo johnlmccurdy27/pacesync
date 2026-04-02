@@ -18,33 +18,24 @@ export default async function DashboardPage() {
   const user = await prisma.user.findUnique({ where: { email: session.user!.email! } })
 
   let athleteCount = 0
-  let thisWeekCount = 0
   let completedCount = 0
   let assignedCount = 0
+  let upcomingSession: { workout: { name: string }; group: { name: string }; scheduledFor: Date } | null = null
 
   if (user) {
     const now = new Date()
 
-    const startOfWeek = new Date()
-    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
-    startOfWeek.setHours(0, 0, 0, 0)
-    const endOfWeek = new Date(startOfWeek)
-    endOfWeek.setDate(endOfWeek.getDate() + 7)
-
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-    const [athletes, twc, pastAssignments] = await Promise.all([
+    const startOfToday = new Date()
+    startOfToday.setHours(0, 0, 0, 0)
+
+    const [athletes, pastAssignments, nextAssignment] = await Promise.all([
       prisma.groupMember.findMany({
         where: { group: { coachId: user.id } },
         select: { athleteId: true },
         distinct: ['athleteId'],
-      }),
-      prisma.workoutAssignment.count({
-        where: {
-          group: { coachId: user.id },
-          scheduledFor: { gte: startOfWeek, lt: endOfWeek },
-        },
       }),
       prisma.workoutAssignment.findMany({
         where: {
@@ -53,12 +44,20 @@ export default async function DashboardPage() {
         },
         include: { _count: { select: { activities: true } } },
       }),
+      prisma.workoutAssignment.findFirst({
+        where: {
+          group: { coachId: user.id },
+          scheduledFor: { gte: startOfToday },
+        },
+        orderBy: { scheduledFor: 'asc' },
+        include: { workout: true, group: true },
+      }),
     ])
 
     athleteCount = athletes.length
-    thisWeekCount = twc
     assignedCount = pastAssignments.length
     completedCount = pastAssignments.filter(a => a._count.activities > 0).length
+    upcomingSession = nextAssignment
   }
 
   const completionRate = assignedCount > 0 ? Math.round((completedCount / assignedCount) * 100) : null
@@ -131,10 +130,32 @@ export default async function DashboardPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl p-6 border-2 border-indigo-200 hover:border-indigo-400 transition">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">This Week</div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{thisWeekCount}</div>
-              <div className="text-sm text-gray-500">{thisWeekCount === 0 ? 'No sessions scheduled' : thisWeekCount === 1 ? '1 session scheduled' : `${thisWeekCount} sessions scheduled`}</div>
+            <div className="bg-white rounded-xl p-6 border-2 border-indigo-200 hover:border-indigo-400 transition flex flex-col sm:flex-row items-center sm:items-start gap-4">
+              {upcomingSession ? (() => {
+                const d = new Date(upcomingSession.scheduledFor)
+                const weekday = d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()
+                const day = d.getDate()
+                const month = d.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()
+                return (
+                  <>
+                    <div className="flex flex-col justify-center text-center sm:text-left min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Next Session</div>
+                      <div className="text-sm font-bold text-gray-900 leading-snug">{upcomingSession.workout.name}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{upcomingSession.group.name}</div>
+                    </div>
+                    <div className="flex flex-col items-center justify-center bg-yellow-400 rounded-xl px-4 py-3 min-w-[64px] flex-shrink-0">
+                      <span className="text-xs font-bold text-yellow-800 tracking-widest">{weekday}</span>
+                      <span className="text-4xl font-bold text-white leading-none">{day}</span>
+                      <span className="text-xs font-semibold text-yellow-800 tracking-widest mt-0.5">{month}</span>
+                    </div>
+                  </>
+                )
+              })() : (
+                <div className="flex flex-col justify-center w-full gap-1">
+                  <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Next Session</div>
+                  <div className="text-sm text-gray-400">No upcoming sessions</div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -176,7 +197,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Getting Started */}
-          {(athleteCount === 0 || thisWeekCount === 0) && (
+          {(athleteCount === 0 || !upcomingSession) && (
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-6 border border-indigo-200">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Getting started</h4>
               <div className="space-y-3">
@@ -192,13 +213,13 @@ export default async function DashboardPage() {
                   )}
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${thisWeekCount > 0 ? 'bg-green-500' : 'bg-gray-200'}`}>
-                    <span className="text-white text-xs">{thisWeekCount > 0 ? '✓' : '2'}</span>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${upcomingSession ? 'bg-green-500' : 'bg-gray-200'}`}>
+                    <span className="text-white text-xs">{upcomingSession ? '✓' : '2'}</span>
                   </div>
-                  <span className={`text-sm ${thisWeekCount > 0 ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                    Schedule a session this week
+                  <span className={`text-sm ${upcomingSession ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+                    Schedule a session
                   </span>
-                  {thisWeekCount === 0 && (
+                  {!upcomingSession && (
                     <Link href="/schedule" className="text-xs text-indigo-600 hover:underline font-medium ml-auto">Do it now →</Link>
                   )}
                 </div>
