@@ -25,10 +25,11 @@ type ThreadMeta = { id: string; athlete: UserSummary; unreadCount: number; lastM
 type CoachEntry = { coach: UserSummary; threadId: string | null; unreadCount: number }
 
 function Avatar({ user, size = 8 }: { user: { name: string | null; email: string; profilePicture: string | null }; size?: number }) {
+  const [imgError, setImgError] = useState(false)
   const initials = (user.name || user.email).charAt(0).toUpperCase()
   const s = `w-${size} h-${size}`
-  return user.profilePicture
-    ? <img src={user.profilePicture} alt="" className={`${s} rounded-full object-cover flex-shrink-0`} />
+  return (user.profilePicture && !imgError)
+    ? <img src={user.profilePicture} alt="" className={`${s} rounded-full object-cover flex-shrink-0`} onError={() => setImgError(true)} />
     : <div className={`${s} rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0`}>
         <span className="text-indigo-700 font-bold text-xs">{initials}</span>
       </div>

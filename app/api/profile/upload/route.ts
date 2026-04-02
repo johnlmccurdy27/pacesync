@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/app/api/auth/[...nextauth]/route'
-import { writeFile } from 'fs/promises'
-import { join } from 'path'
+import { put } from '@vercel/blob'
 
 export async function POST(request: Request) {
   const session = await auth()
@@ -21,9 +20,9 @@ export async function POST(request: Request) {
   }
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const filename = `avatar-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-  const bytes = await file.arrayBuffer()
-  await writeFile(join(process.cwd(), 'public', 'uploads', filename), Buffer.from(bytes))
+  const filename = `avatars/avatar-${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
-  return NextResponse.json({ url: `/uploads/${filename}` })
+  const blob = await put(filename, file, { access: 'public' })
+
+  return NextResponse.json({ url: blob.url })
 }
