@@ -17,19 +17,24 @@ export default async function DashboardPage() {
 
   const user = await prisma.user.findUnique({ where: { email: session.user!.email! } })
 
-  let workoutCount = 0
   let athleteCount = 0
   let thisWeekCount = 0
+  let completedCount = 0
+  let assignedCount = 0
 
   if (user) {
+    const now = new Date()
+
     const startOfWeek = new Date()
     startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay())
     startOfWeek.setHours(0, 0, 0, 0)
     const endOfWeek = new Date(startOfWeek)
     endOfWeek.setDate(endOfWeek.getDate() + 7)
 
-    const [wc, athletes, twc] = await Promise.all([
-      prisma.workout.count({ where: { coachId: user.id } }),
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const [athletes, twc, pastAssignments] = await Promise.all([
       prisma.groupMember.findMany({
         where: { group: { coachId: user.id } },
         select: { athleteId: true },
@@ -41,12 +46,22 @@ export default async function DashboardPage() {
           scheduledFor: { gte: startOfWeek, lt: endOfWeek },
         },
       }),
+      prisma.workoutAssignment.findMany({
+        where: {
+          group: { coachId: user.id },
+          scheduledFor: { gte: thirtyDaysAgo, lt: now },
+        },
+        include: { _count: { select: { activities: true } } },
+      }),
     ])
 
-    workoutCount = wc
     athleteCount = athletes.length
     thisWeekCount = twc
+    assignedCount = pastAssignments.length
+    completedCount = pastAssignments.filter(a => a._count.activities > 0).length
   }
+
+  const completionRate = assignedCount > 0 ? Math.round((completedCount / assignedCount) * 100) : null
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -82,9 +97,38 @@ export default async function DashboardPage() {
             </div>
 
             <div className="bg-white rounded-xl p-6 border-2 border-indigo-200 hover:border-indigo-400 transition">
-              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Workouts Created</div>
-              <div className="text-4xl font-bold text-gray-900 mb-2">{workoutCount}</div>
-              <div className="text-sm text-gray-500">{workoutCount === 0 ? 'Ready to create your first?' : workoutCount === 1 ? '1 workout in your library' : `${workoutCount} workouts in your library`}</div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Completion Rate</div>
+              <div className="flex items-end gap-2 mb-3">
+                <div className="text-4xl font-bold text-gray-900">
+                  {completionRate === null ? '—' : `${completionRate}%`}
+                </div>
+                {completionRate !== null && (
+                  <div className={`mb-1 text-xs font-bold px-2 py-0.5 rounded-full ${
+                    completionRate >= 70 ? 'bg-green-100 text-green-700' :
+                    completionRate >= 40 ? 'bg-amber-100 text-amber-700' :
+                    'bg-red-100 text-red-700'
+                  }`}>
+                    {completionRate >= 70 ? 'On track' : completionRate >= 40 ? 'Needs attention' : 'Low'}
+                  </div>
+                )}
+              </div>
+              {completionRate !== null && (
+                <div className="w-full bg-gray-100 rounded-full h-1.5 mb-2">
+                  <div
+                    className={`h-1.5 rounded-full transition-all ${
+                      completionRate >= 70 ? 'bg-green-500' :
+                      completionRate >= 40 ? 'bg-amber-400' :
+                      'bg-red-400'
+                    }`}
+                    style={{ width: `${completionRate}%` }}
+                  />
+                </div>
+              )}
+              <div className="text-sm text-gray-500">
+                {completionRate === null
+                  ? 'No sessions due yet'
+                  : `${completedCount} of ${assignedCount} sessions done (last 30 days)`}
+              </div>
             </div>
 
             <div className="bg-white rounded-xl p-6 border-2 border-indigo-200 hover:border-indigo-400 transition">
@@ -132,24 +176,13 @@ export default async function DashboardPage() {
           </div>
 
           {/* Getting Started */}
-          {(workoutCount === 0 || athleteCount === 0 || thisWeekCount === 0) && (
+          {(athleteCount === 0 || thisWeekCount === 0) && (
             <div className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl p-6 border border-indigo-200">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">Getting started</h4>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${workoutCount > 0 ? 'bg-green-500' : 'bg-gray-200'}`}>
-                    <span className="text-white text-xs">{workoutCount > 0 ? '✓' : '1'}</span>
-                  </div>
-                  <span className={`text-sm ${workoutCount > 0 ? 'line-through text-gray-400' : 'text-gray-700'}`}>
-                    Create your first workout
-                  </span>
-                  {workoutCount === 0 && (
-                    <Link href="/workouts/new" className="text-xs text-indigo-600 hover:underline font-medium ml-auto">Do it now →</Link>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${athleteCount > 0 ? 'bg-green-500' : 'bg-gray-200'}`}>
-                    <span className="text-white text-xs">{athleteCount > 0 ? '✓' : '2'}</span>
+                    <span className="text-white text-xs">{athleteCount > 0 ? '✓' : '1'}</span>
                   </div>
                   <span className={`text-sm ${athleteCount > 0 ? 'line-through text-gray-400' : 'text-gray-700'}`}>
                     Invite your first athlete
@@ -160,7 +193,7 @@ export default async function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${thisWeekCount > 0 ? 'bg-green-500' : 'bg-gray-200'}`}>
-                    <span className="text-white text-xs">{thisWeekCount > 0 ? '✓' : '3'}</span>
+                    <span className="text-white text-xs">{thisWeekCount > 0 ? '✓' : '2'}</span>
                   </div>
                   <span className={`text-sm ${thisWeekCount > 0 ? 'line-through text-gray-400' : 'text-gray-700'}`}>
                     Schedule a session this week
