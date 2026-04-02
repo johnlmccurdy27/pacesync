@@ -266,13 +266,12 @@ export default function WorkoutDetailPage({ params }: { params: Promise<{ id: st
                     return (
                       <div
                         key={originalStep.id}
-                        className="rounded-t transition-all hover:opacity-80 cursor-pointer relative group flex-shrink-0"
+                        className="rounded-t transition-all hover:opacity-80 cursor-pointer relative group"
                         style={{
-                          width: `${widthPercent}%`,
+                          flex: `${step.normalizedValue} 1 0%`,
                           height: `${heightPercent}%`,
                           backgroundColor: getStepColor(originalStep),
-                          minWidth: '4px',
-                          minHeight: '25%'
+                          minHeight: '15%'
                         }}
                       >
                         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
