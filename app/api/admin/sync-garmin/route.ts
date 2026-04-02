@@ -14,43 +14,78 @@ function garminStepType(type: string) {
   }
 }
 
+function buildExecutableStep(step: any, stepOrder: number) {
+  const isDistance = step.measure === 'distance'
+  let endConditionValue: number
+  if (isDistance) {
+    switch (step.unit.toLowerCase()) {
+      case 'km': endConditionValue = step.value * 1000; break
+      case 'mi': endConditionValue = Math.round(step.value * 1609.34); break
+      default:   endConditionValue = step.value
+    }
+  } else {
+    switch (step.unit.toLowerCase()) {
+      case 'min': endConditionValue = step.value * 60; break
+      case 'hr':  endConditionValue = step.value * 3600; break
+      default:    endConditionValue = step.value
+    }
+  }
+  return {
+    type: 'ExecutableStepDTO',
+    stepId: null,
+    stepOrder,
+    childStepId: null,
+    description: null,
+    stepType: garminStepType(step.type),
+    endCondition: isDistance
+      ? { conditionTypeId: 3, conditionTypeKey: 'distance' }
+      : { conditionTypeId: 2, conditionTypeKey: 'time' },
+    endConditionValue: Math.round(endConditionValue),
+    preferredEndConditionUnit: isDistance ? { unitKey: 'meter' } : null,
+    endConditionCompare: null,
+    endConditionZone: null,
+    targetType: { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target' },
+    targetValueOne: null,
+    targetValueTwo: null,
+    zoneNumber: null,
+  }
+}
+
 function buildGarminWorkout(name: string, notes: string, steps: any[]) {
-  const garminSteps = steps.map((step, i) => {
-    const isDistance = step.measure === 'distance'
-    let endConditionValue: number
-    if (isDistance) {
-      switch (step.unit.toLowerCase()) {
-        case 'km': endConditionValue = step.value * 1000; break
-        case 'mi': endConditionValue = Math.round(step.value * 1609.34); break
-        default:   endConditionValue = step.value
-      }
+  const garminSteps: any[] = []
+  let stepOrder = 1
+  let i = 0
+
+  while (i < steps.length) {
+    const step = steps[i]
+
+    if (!step.repeatGroup) {
+      garminSteps.push(buildExecutableStep(step, stepOrder++))
+      i++
     } else {
-      switch (step.unit.toLowerCase()) {
-        case 'min': endConditionValue = step.value * 60; break
-        case 'hr':  endConditionValue = step.value * 3600; break
-        default:    endConditionValue = step.value
+      // Collect all steps in this repeat group
+      const groupId = step.repeatGroup
+      const repeatCount = step.repeatCount || 1
+      const childSteps: any[] = []
+      let childOrder = 1
+
+      while (i < steps.length && steps[i].repeatGroup === groupId) {
+        childSteps.push(buildExecutableStep(steps[i], childOrder++))
+        i++
       }
+
+      garminSteps.push({
+        type: 'RepeatGroupDTO',
+        stepId: null,
+        stepOrder: stepOrder++,
+        childStepId: 1,
+        numberOfIterations: repeatCount,
+        smartRepeat: false,
+        workoutSteps: childSteps,
+      })
     }
-    return {
-      type: 'ExecutableStepDTO',
-      stepId: null,
-      stepOrder: i + 1,
-      childStepId: null,
-      description: null,
-      stepType: garminStepType(step.type),
-      endCondition: isDistance
-        ? { conditionTypeId: 3, conditionTypeKey: 'distance' }
-        : { conditionTypeId: 2, conditionTypeKey: 'time' },
-      endConditionValue: Math.round(endConditionValue),
-      preferredEndConditionUnit: isDistance ? { unitKey: 'meter' } : null,
-      endConditionCompare: null,
-      endConditionZone: null,
-      targetType: { workoutTargetTypeId: 1, workoutTargetTypeKey: 'no.target' },
-      targetValueOne: null,
-      targetValueTwo: null,
-      zoneNumber: null,
-    }
-  })
+  }
+
   return {
     workoutName: name,
     description: notes || 'Synced from Structur',
