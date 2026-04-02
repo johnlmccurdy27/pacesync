@@ -45,45 +45,64 @@ export async function GET(
       hardwareVersion: 0
     })
 
-    // 3. WORKOUT MESSAGE
-    // sport: 1=running, subSport: 0=generic, capabilities is uint32z bitmask (0 = none)
+    // 3. BUILD FIT STEP LIST
+    // Walk steps in order. Repeat groups emit their child steps then a Garmin
+    // "repeatUntilStepsCmplt" pointer step. Single steps emit as-is.
+    // durationType 6 = repeatUntilStepsCmplt (Garmin FIT protocol)
+    const steps = workout.steps  // already ordered by position
+
+    interface FitEntry { type: 'step' | 'repeat'; data: any }
+    const fitEntries: FitEntry[] = []
+    let messageIndex = 0
+    let i = 0
+
+    while (i < steps.length) {
+      const step = steps[i] as any
+
+      if (!step.repeatGroup) {
+        // Regular standalone step
+        fitEntries.push({ type: 'step', data: buildStepData(step, messageIndex) })
+        messageIndex++
+        i++
+      } else {
+        // Repeat group — collect all steps sharing the same repeatGroup ID
+        const groupId = step.repeatGroup
+        const repeatCount = step.repeatCount || 1
+        const groupStartIndex = messageIndex
+
+        while (i < steps.length && (steps[i] as any).repeatGroup === groupId) {
+          fitEntries.push({ type: 'step', data: buildStepData(steps[i] as any, messageIndex) })
+          messageIndex++
+          i++
+        }
+
+        // Garmin repeat pointer step: go back to groupStartIndex, repeat N times
+        fitEntries.push({
+          type: 'repeat',
+          data: {
+            messageIndex,
+            durationType: 6,         // repeatUntilStepsCmplt
+            durationValue: groupStartIndex,  // messageIndex of first step in group
+            targetType: 2,           // open
+            targetValue: repeatCount,
+          }
+        })
+        messageIndex++
+      }
+    }
+
+    // 4. WORKOUT MESSAGE (numValidSteps = total FIT steps including repeat pointers)
     encoder.onMesg(Profile.MesgNum.WORKOUT, {
       messageIndex: 0,
       wktName: workout.name,
       sport: 1,
       subSport: 0,
-      numValidSteps: workout.steps.length
+      numValidSteps: fitEntries.length,
     })
 
-    // 4. WORKOUT STEPS
-    // intensity: 0=active,1=rest,2=warmup,3=cooldown,4=recovery,5=interval
-    // durationType: 0=time,1=distance
-    // targetType: 1=heartRate,2=open
-    workout.steps.forEach((step: any, index: number) => {
-      const stepData: any = {
-        messageIndex: index,
-        intensity: getIntensityValue(step.type),
-      }
-
-      // Duration
-      if (step.measure === 'distance') {
-        stepData.durationType = 1 // distance
-        stepData.durationValue = Math.round(convertToMeters(step.value, step.unit) * 100) // centimeters
-      } else {
-        stepData.durationType = 0 // time
-        stepData.durationValue = Math.round(convertToSeconds(step.value, step.unit) * 1000) // milliseconds
-      }
-
-      // Target
-      if (step.zone && step.zone.toLowerCase() !== 'easy') {
-        stepData.targetType = 1 // heartRate
-        stepData.targetValue = getHRZoneNumber(step.zone)
-      } else {
-        stepData.targetType = 2 // open
-        stepData.targetValue = 0
-      }
-
-      encoder.onMesg(Profile.MesgNum.WORKOUT_STEP, stepData)
+    // 5. EMIT ALL WORKOUT STEPS
+    fitEntries.forEach(entry => {
+      encoder.onMesg(Profile.MesgNum.WORKOUT_STEP, entry.data)
     })
 
     // Close encoder and get the Uint8Array
@@ -106,6 +125,33 @@ export async function GET(
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 })
   }
+}
+
+function buildStepData(step: any, messageIndex: number): any {
+  const data: any = {
+    messageIndex,
+    intensity: getIntensityValue(step.type),
+  }
+
+  if (step.measure === 'distance') {
+    data.durationType = 1 // distance
+    data.durationValue = Math.round(convertToMeters(step.value, step.unit) * 100) // centimeters
+  } else {
+    data.durationType = 0 // time
+    data.durationValue = Math.round(convertToSeconds(step.value, step.unit) * 1000) // milliseconds
+  }
+
+  // Recovery/rest steps use open target; all others use HR zone if set
+  const type = step.type?.toLowerCase()
+  if ((type === 'recovery' || type === 'rest') || !step.zone || step.zone.toLowerCase() === 'easy') {
+    data.targetType = 2 // open
+    data.targetValue = 0
+  } else {
+    data.targetType = 1 // heartRate
+    data.targetValue = getHRZoneNumber(step.zone)
+  }
+
+  return data
 }
 
 function convertToMeters(value: number, unit: string): number {

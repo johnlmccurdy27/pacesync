@@ -76,15 +76,17 @@ model Workout {
 }
 
 model WorkoutStep {
-  id        String  @id @default(cuid())
-  workoutId String
-  position  Int
-  type      String
-  measure   String
-  value     Float
-  unit      String
-  zone      String?
-  
+  id          String  @id @default(cuid())
+  workoutId   String
+  position    Int
+  type        String
+  measure     String
+  value       Float
+  unit        String
+  zone        String?
+  repeatCount Int?     // set on first step of a repeat group — the repeat count
+  repeatGroup String?  // shared ID linking steps in the same repeat block
+
   workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 }
 

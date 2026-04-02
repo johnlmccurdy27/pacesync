@@ -64,7 +64,9 @@ export async function PUT(
             measure: step.measure,
             value: parseFloat(step.value) || 0,
             unit: step.unit,
-            zone: step.zone || null
+            zone: step.zone || null,
+            repeatCount: step.repeatCount ?? null,
+            repeatGroup: step.repeatGroup ?? null,
           }))
         }
       },

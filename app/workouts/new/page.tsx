@@ -155,33 +155,20 @@ export default function NewWorkoutPage() {
       return
     }
 
-    // Flatten blocks into steps array
+    // Build steps — repeat blocks stored with a shared repeatGroup ID, NOT unrolled
     const allSteps: any[] = []
+    let position = 0
     blocks.forEach(block => {
       if (block.blockType === 'single') {
         block.steps.forEach(step => {
-          allSteps.push({
-            type: step.type,
-            measure: step.measure,
-            value: step.value,
-            unit: step.unit,
-            zone: step.zone
-          })
+          allSteps.push({ type: step.type, measure: step.measure, value: step.value, unit: step.unit, zone: step.zone, repeatGroup: null, repeatCount: null, position: position++ })
         })
       } else {
-        // Repeat block
-        const repeatCount = block.repeatCount || 1
-        for (let i = 0; i < repeatCount; i++) {
-          block.steps.forEach(step => {
-            allSteps.push({
-              type: step.type,
-              measure: step.measure,
-              value: step.value,
-              unit: step.unit,
-              zone: step.zone
-            })
-          })
-        }
+        const groupId = Math.random().toString(36).substr(2, 9)
+        const count = block.repeatCount || 1
+        block.steps.forEach((step, i) => {
+          allSteps.push({ type: step.type, measure: step.measure, value: step.value, unit: step.unit, zone: step.zone, repeatGroup: groupId, repeatCount: i === 0 ? count : null, position: position++ })
+        })
       }
     })
 

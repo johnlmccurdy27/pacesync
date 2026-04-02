@@ -30,6 +30,8 @@ type DBStep = {
   unit: string
   zone: string | null
   position: number
+  repeatCount: number | null
+  repeatGroup: string | null
 }
 
 function groupDBSteps(steps: DBStep[]) {
@@ -67,35 +69,45 @@ function groupDBSteps(steps: DBStep[]) {
 
 const makeId = () => Math.random().toString(36).substr(2, 9)
 
+const toUIStep = (s: DBStep) => ({
+  id: makeId(),
+  type: s.type as StepType,
+  measure: s.measure as 'distance' | 'time',
+  value: s.value,
+  unit: s.unit,
+  zone: s.zone || undefined,
+})
+
 function dbStepsToBlocks(steps: DBStep[]): Block[] {
+  // New format: use repeatGroup field directly
+  if (steps.some(s => s.repeatGroup != null)) {
+    const blocks: Block[] = []
+    let i = 0
+    while (i < steps.length) {
+      const step = steps[i]
+      if (!step.repeatGroup) {
+        blocks.push({ id: makeId(), blockType: 'single', steps: [toUIStep(step)] })
+        i++
+      } else {
+        const groupId = step.repeatGroup
+        const count = step.repeatCount || 1
+        const groupSteps: DBStep[] = []
+        while (i < steps.length && steps[i].repeatGroup === groupId) {
+          groupSteps.push(steps[i])
+          i++
+        }
+        blocks.push({ id: makeId(), blockType: 'repeat', repeatCount: count, steps: groupSteps.map(toUIStep) })
+      }
+    }
+    return blocks
+  }
+
+  // Old format fallback: heuristic pattern detection
   return groupDBSteps(steps).map(g => {
     if (g.kind === 'single') {
-      return {
-        id: makeId(),
-        blockType: 'single' as const,
-        steps: [{
-          id: makeId(),
-          type: g.step.type as StepType,
-          measure: g.step.measure as 'distance' | 'time',
-          value: g.step.value,
-          unit: g.step.unit,
-          zone: g.step.zone || undefined
-        }]
-      }
+      return { id: makeId(), blockType: 'single' as const, steps: [toUIStep(g.step)] }
     } else {
-      return {
-        id: makeId(),
-        blockType: 'repeat' as const,
-        repeatCount: g.count,
-        steps: g.steps.map(s => ({
-          id: makeId(),
-          type: s.type as StepType,
-          measure: s.measure as 'distance' | 'time',
-          value: s.value,
-          unit: s.unit,
-          zone: s.zone || undefined
-        }))
-      }
+      return { id: makeId(), blockType: 'repeat' as const, repeatCount: g.count, steps: g.steps.map(toUIStep) }
     }
   })
 }
@@ -184,11 +196,17 @@ export default function EditWorkoutPage({ params }: { params: Promise<{ id: stri
     if (blocks.length === 0) { setError('Add at least one step'); setSaving(false); return }
 
     const allSteps: any[] = []
+    let position = 0
     blocks.forEach(block => {
-      const repeat = block.blockType === 'repeat' ? (block.repeatCount || 1) : 1
-      for (let i = 0; i < repeat; i++) {
+      if (block.blockType === 'single') {
         block.steps.forEach(step => {
-          allSteps.push({ type: step.type, measure: step.measure, value: step.value, unit: step.unit, zone: step.zone })
+          allSteps.push({ type: step.type, measure: step.measure, value: step.value, unit: step.unit, zone: step.zone, repeatGroup: null, repeatCount: null, position: position++ })
+        })
+      } else {
+        const groupId = Math.random().toString(36).substr(2, 9)
+        const count = block.repeatCount || 1
+        block.steps.forEach((step, i) => {
+          allSteps.push({ type: step.type, measure: step.measure, value: step.value, unit: step.unit, zone: step.zone, repeatGroup: groupId, repeatCount: i === 0 ? count : null, position: position++ })
         })
       }
     })
