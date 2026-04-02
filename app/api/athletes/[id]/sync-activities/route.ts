@@ -66,6 +66,9 @@ export async function POST(
     if (msg.includes('429') || msg.toLowerCase().includes('too many')) {
       return NextResponse.json({ error: 'Garmin is rate limiting requests. Please wait a few minutes and try again.' }, { status: 429 })
     }
+    if (msg.toLowerCase().includes('mfa') || msg.toLowerCase().includes('ticket not found')) {
+      return NextResponse.json({ error: 'Garmin login failed: this account has two-factor authentication (MFA) enabled. The athlete must disable 2FA in their Garmin Connect account settings to allow syncing.' }, { status: 502 })
+    }
     return NextResponse.json({ error: `Garmin login failed: ${msg}` }, { status: 502 })
   }
 

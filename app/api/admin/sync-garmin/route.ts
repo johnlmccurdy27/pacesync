@@ -157,7 +157,12 @@ async function syncAssignment(assignmentId: string) {
       )
       syncCount++
     } catch (err: any) {
-      errors.push(`${label}: ${err?.message ?? 'Unknown error'}`)
+      const msg = err?.message ?? 'Unknown error'
+      if (msg.toLowerCase().includes('mfa') || msg.toLowerCase().includes('ticket not found')) {
+        errors.push(`${label}: Garmin 2FA/MFA is enabled — athlete must disable two-factor authentication in Garmin Connect account settings`)
+      } else {
+        errors.push(`${label}: ${msg}`)
+      }
     }
   }
 
