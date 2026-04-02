@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { auth } from '@/app/api/auth/[...nextauth]/route'
-import { GarminConnect } from 'garmin-connect'
+import { getGarminClient } from '@/lib/garminLogin'
 import { XMLParser } from 'fast-xml-parser'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -58,18 +58,11 @@ export async function POST(
     return NextResponse.json({ error: 'Athlete has no Garmin connection' }, { status: 400 })
   }
 
-  const gc = new GarminConnect({ username: garminConn.accessToken, password: garminConn.refreshToken! })
+  let gc: Awaited<ReturnType<typeof getGarminClient>>
   try {
-    await gc.login()
+    gc = await getGarminClient(garminConn as any)
   } catch (e: any) {
-    const msg = e?.message || String(e)
-    if (msg.includes('429') || msg.toLowerCase().includes('too many')) {
-      return NextResponse.json({ error: 'Garmin is rate limiting requests. Please wait a few minutes and try again.' }, { status: 429 })
-    }
-    if (msg.toLowerCase().includes('mfa') || msg.toLowerCase().includes('ticket not found')) {
-      return NextResponse.json({ error: 'Garmin login failed: this account has two-factor authentication (MFA) enabled. The athlete must disable 2FA in their Garmin Connect account settings to allow syncing.' }, { status: 502 })
-    }
-    return NextResponse.json({ error: `Garmin login failed: ${msg}` }, { status: 502 })
+    return NextResponse.json({ error: e.message }, { status: 502 })
   }
 
   // Fetch recent activities — get last 30 and filter to last 7 days

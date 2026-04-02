@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { auth } from '@/app/api/auth/[...nextauth]/route'
+import { getGarminClient } from '@/lib/garminLogin'
 
 const prisma = new PrismaClient()
 
@@ -143,12 +144,7 @@ async function syncAssignment(assignmentId: string) {
     const conn = member.athlete.watchConnections[0]
     const label = member.athlete.name || member.athlete.email
     try {
-      const { GarminConnect } = await import('garmin-connect')
-      const client = new GarminConnect({
-        username: conn.accessToken,
-        password: conn.refreshToken!,
-      })
-      await client.login()
+      const client = await getGarminClient(conn as any)
       const result = await client.addWorkout(garminWorkout as any)
       const deviceSyncId = String((result as any)?.workoutId ?? '')
       await (client as any).client.post(
@@ -157,12 +153,7 @@ async function syncAssignment(assignmentId: string) {
       )
       syncCount++
     } catch (err: any) {
-      const msg = err?.message ?? 'Unknown error'
-      if (msg.toLowerCase().includes('mfa') || msg.toLowerCase().includes('ticket not found')) {
-        errors.push(`${label}: Garmin 2FA/MFA is enabled — athlete must disable two-factor authentication in Garmin Connect account settings`)
-      } else {
-        errors.push(`${label}: ${msg}`)
-      }
+      errors.push(`${label}: ${err?.message ?? 'Unknown error'}`)
     }
   }
 

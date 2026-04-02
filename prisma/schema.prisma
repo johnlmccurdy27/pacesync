@@ -56,8 +56,9 @@ model WatchConnection {
   accessToken   String
   refreshToken  String?
   expiresAt     DateTime?
+  sessionData   String?   // cached OAuth1+OAuth2 tokens as JSON to avoid repeated SSO logins
   createdAt     DateTime  @default(now())
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
