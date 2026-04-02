@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { auth } from '@/app/api/auth/[...nextauth]/route'
+import { sendNewMessageEmail } from '@/lib/email'
 
 const prisma = new PrismaClient()
 
@@ -54,13 +55,28 @@ export async function POST(
     const user = await prisma.user.findUnique({ where: { email: session.user.email } })
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-    const thread = await prisma.messageThread.findUnique({ where: { id: threadId } })
+    const thread = await prisma.messageThread.findUnique({
+      where: { id: threadId },
+      include: {
+        coach: { select: { id: true, name: true, email: true } },
+        athlete: { select: { id: true, name: true, email: true } },
+      },
+    })
     if (!thread || (thread.coachId !== user.id && thread.athleteId !== user.id)) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
     const { body } = await request.json()
     if (!body?.trim()) return NextResponse.json({ error: 'Message body required' }, { status: 400 })
+
+    // Determine recipient
+    const recipient = user.id === thread.coachId ? thread.athlete : thread.coach
+    const senderRole = user.id === thread.coachId ? 'coach' : 'athlete'
+
+    // Only email if recipient has no existing unread messages (avoid inbox flood)
+    const existingUnread = await prisma.message.count({
+      where: { threadId, senderId: user.id, readAt: null },
+    })
 
     const [message] = await prisma.$transaction([
       prisma.message.create({
@@ -72,6 +88,11 @@ export async function POST(
         data: { lastMessageAt: new Date() },
       }),
     ])
+
+    // Fire notification email (non-blocking)
+    if (existingUnread === 0) {
+      sendNewMessageEmail(recipient.email, recipient.name, user.name, senderRole).catch(() => {})
+    }
 
     return NextResponse.json(message)
   } catch (error) {

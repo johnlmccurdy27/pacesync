@@ -56,6 +56,39 @@ export async function sendWelcomeEmail(to: string, name: string | null): Promise
   })
 }
 
+export async function sendNewMessageEmail(
+  to: string,
+  recipientName: string | null,
+  senderName: string | null,
+  senderRole: 'coach' | 'athlete'
+): Promise<void> {
+  const roleLabel = senderRole === 'coach' ? 'coach' : 'athlete'
+  await getResend().emails.send({
+    from: FROM,
+    to,
+    subject: `New message from your ${roleLabel} on Structur`,
+    html: `
+      <div style="max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb;">
+        ${emailHeader}
+        <div style="padding: 32px 24px; font-family: sans-serif; color: #111827;">
+          <h1 style="color: #1a1f6e; font-size: 22px; margin: 0 0 12px;">
+            New message${recipientName ? `, ${recipientName}` : ''}
+          </h1>
+          <p style="color: #4b5563; line-height: 1.6; margin: 0 0 24px;">
+            You have a new message from your ${roleLabel}${senderName ? `, <strong>${senderName}</strong>,` : ''} — view it on Structur.
+          </p>
+          <a href="${BASE_URL}/messages"
+             style="display: inline-block; padding: 12px 28px; background: #3d52d4; color: #ffffff;
+                    text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px;">
+            View Message
+          </a>
+        </div>
+        ${emailFooter}
+      </div>
+    `,
+  })
+}
+
 export async function sendAthleteInviteEmail(
   to: string,
   coachName: string,
