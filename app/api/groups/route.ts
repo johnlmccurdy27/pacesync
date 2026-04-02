@@ -54,12 +54,14 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { name, description } = body
+    const { name, description, raceName, raceDate } = body
 
     const group = await prisma.group.create({
       data: {
         name,
         description: description || null,
+        raceName: raceName || null,
+        raceDate: raceDate ? new Date(raceDate) : null,
         coachId: user.id
       }
     })

@@ -46,6 +46,20 @@ type StepGroup =
   | { kind: 'single'; step: Step }
   | { kind: 'repeat'; steps: Step[]; count: number }
 
+type WeatherDay = { date: string; code: number; maxTemp: number }
+
+function weatherEmoji(code: number): string {
+  if (code === 0) return '☀️'
+  if (code <= 2) return '⛅'
+  if (code <= 3) return '☁️'
+  if (code === 45 || code === 48) return '🌫️'
+  if (code <= 67) return '🌧️'
+  if (code <= 77) return '❄️'
+  if (code <= 82) return '🌦️'
+  if (code <= 86) return '🌨️'
+  return '⛈️'
+}
+
 function groupSteps(steps: Step[]): StepGroup[] {
   const groups: StepGroup[] = []
   let i = 0
@@ -101,10 +115,34 @@ export default function SchedulePage() {
   }, [])
   const [selectedWorkoutDetail, setSelectedWorkoutDetail] = useState<WorkoutDetail | null>(null)
   const [loadingDetail, setLoadingDetail] = useState(false)
+  const [weather, setWeather] = useState<Record<string, WeatherDay>>({})
 
   useEffect(() => {
     loadData()
   }, [currentDate])
+
+  useEffect(() => {
+    const fetchWeather = (lat: number, lon: number) => {
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weathercode,temperature_2m_max&timezone=auto&forecast_days=16`)
+        .then(r => r.json())
+        .then(data => {
+          const map: Record<string, WeatherDay> = {}
+          data.daily.time.forEach((date: string, i: number) => {
+            map[date] = { date, code: data.daily.weathercode[i], maxTemp: Math.round(data.daily.temperature_2m_max[i]) }
+          })
+          setWeather(map)
+        })
+        .catch(() => {})
+    }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        ({ coords }) => fetchWeather(coords.latitude, coords.longitude),
+        () => fetchWeather(51.5, -0.12)
+      )
+    } else {
+      fetchWeather(51.5, -0.12)
+    }
+  }, [])
 
   const loadData = async () => {
     try {
@@ -294,13 +332,13 @@ export default function SchedulePage() {
 
             {/* ── MONTH VIEW ── */}
             {view === 'month' && (
-              <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <div className="bg-white rounded-xl p-4 border border-gray-200">
                 <div className="flex items-center justify-between mb-4 gap-2">
-                  <h2 className="text-lg lg:text-2xl font-bold text-gray-900">{monthName}</h2>
+                  <h2 className="text-lg lg:text-xl font-bold text-gray-900">{monthName}</h2>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    <button onClick={previousMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">←</button>
-                    <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">Today</button>
-                    <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">→</button>
+                    <button onClick={previousMonth} className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">←</button>
+                    <button onClick={() => setCurrentDate(new Date())} className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">Today</button>
+                    <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">→</button>
                     {isAdmin && assignments.length > 0 && (
                       <>
                         <button
@@ -322,7 +360,7 @@ export default function SchedulePage() {
                 </div>
 
                 {/* Legend */}
-                <div className="flex items-center gap-6 text-sm mb-6">
+                <div className="flex items-center gap-6 text-sm mb-3">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-indigo-100 border border-indigo-500 rounded"></div>
                     <span className="text-gray-600">Today</span>
@@ -331,40 +369,54 @@ export default function SchedulePage() {
                     <div className="w-4 h-4 bg-indigo-100 rounded"></div>
                     <span className="text-gray-600">Workout assigned</span>
                   </div>
-                  <div className="text-gray-500">Click any date to assign a workout</div>
+                  <div className="text-gray-500 hidden sm:block">Click any date to assign a workout</div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-2">
+                <div className="grid grid-cols-7 gap-1">
                   {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                    <div key={day} className="text-center font-semibold text-gray-700 py-2">{day}</div>
+                    <div key={day} className="text-center font-semibold text-gray-700 py-1.5 text-xs">{day}</div>
                   ))}
                   {days.map((date, index) => {
-                    if (!date) return <div key={`empty-${index}`} className="aspect-square" />
+                    if (!date) return <div key={`empty-${index}`} className="min-h-[60px] lg:min-h-[90px]" />
                     const dayAssignments = getAssignmentsForDate(date)
                     const isToday = date.toDateString() === new Date().toDateString()
                     const isPast = date < new Date() && !isToday
                     return (
                       <div
                         key={date.toISOString()}
-                        className={`min-h-[52px] lg:aspect-square border rounded-lg p-1 lg:p-2 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
+                        className={`min-h-[60px] lg:min-h-[90px] border rounded-lg p-1 lg:p-1.5 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
                       >
                         <div className="flex flex-col h-full">
-                          <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-start justify-between mb-0.5">
                             <span
-                              className={`text-sm font-semibold ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}
+                              className={`text-xs font-semibold ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}
                               onClick={() => { setSelectedDate(date); setShowAssignModal(true) }}
                             >
                               {date.getDate()}
                             </span>
-                            {dayAssignments.length > 0 && (
-                              <button
-                                onClick={() => switchToDayView(date)}
-                                className="text-xs text-indigo-500 hover:text-indigo-700 font-medium leading-none"
-                                title="Day view"
-                              >
-                                ›
-                              </button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {!isPast && (() => {
+                                const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+                                const w = weather[dateKey]
+                                if (!w) return null
+                                return (
+                                  <div className="hidden lg:flex items-center gap-0.5 flex-shrink-0">
+                                    <span className="text-xs leading-none">{weatherEmoji(w.code)}</span>
+                                    <span className="text-gray-300 text-xs leading-none">|</span>
+                                    <span className="text-xs leading-none text-gray-500">{w.maxTemp}°</span>
+                                  </div>
+                                )
+                              })()}
+                              {dayAssignments.length > 0 && (
+                                <button
+                                  onClick={() => switchToDayView(date)}
+                                  className="text-xs text-indigo-500 hover:text-indigo-700 font-medium leading-none"
+                                  title="Day view"
+                                >
+                                  ›
+                                </button>
+                              )}
+                            </div>
                           </div>
                           <div
                             className="flex-1 overflow-y-auto space-y-1"

@@ -245,18 +245,18 @@ export default function AthleteSchedulePage() {
 
           {/* ── MONTH VIEW ── */}
           {view === 'month' && (
-            <div className="bg-white rounded-xl p-6 border border-gray-200">
-              <div className="flex items-center justify-between mb-6 gap-2">
-                <h2 className="text-lg lg:text-2xl font-bold text-gray-900">{monthName}</h2>
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
+              <div className="flex items-center justify-between mb-4 gap-2">
+                <h2 className="text-lg lg:text-xl font-bold text-gray-900">{monthName}</h2>
                 <div className="flex items-center gap-1.5">
-                  <button onClick={previousMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">←</button>
-                  <button onClick={() => { setCurrentDate(new Date()); }} className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">Today</button>
-                  <button onClick={nextMonth} className="w-9 h-9 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">→</button>
+                  <button onClick={previousMonth} className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">←</button>
+                  <button onClick={() => { setCurrentDate(new Date()); }} className="px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">Today</button>
+                  <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-50 transition text-gray-600">→</button>
                 </div>
               </div>
 
               {/* Legend */}
-              <div className="flex items-center gap-6 text-sm mb-6">
+              <div className="flex items-center gap-6 text-sm mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 bg-indigo-100 border border-indigo-500 rounded"></div>
                   <span className="text-gray-600">Today</span>
@@ -267,12 +267,12 @@ export default function AthleteSchedulePage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-1">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-                  <div key={day} className="text-center font-semibold text-gray-700 py-2 text-xs lg:text-sm">{day}</div>
+                  <div key={day} className="text-center font-semibold text-gray-700 py-1.5 text-xs">{day}</div>
                 ))}
                 {days.map((date, index) => {
-                  if (!date) return <div key={`empty-${index}`} className="aspect-square" />
+                  if (!date) return <div key={`empty-${index}`} className="min-h-[60px] lg:min-h-[90px]" />
                   const dayA = getAssignmentsForDate(date)
                   const isToday = date.toDateString() === new Date().toDateString()
                   const isPast = date < new Date() && !isToday
@@ -280,11 +280,11 @@ export default function AthleteSchedulePage() {
                     <div
                       key={date.toISOString()}
                       onClick={() => switchToDayView(date)}
-                      className={`min-h-[44px] lg:aspect-square border rounded-lg p-1 lg:p-2 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
+                      className={`min-h-[60px] lg:min-h-[90px] border rounded-lg p-1 lg:p-1.5 cursor-pointer transition ${isToday ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50'} ${isPast ? 'opacity-60' : ''}`}
                     >
                       <div className="flex flex-col h-full">
-                        <div className="flex items-start justify-between mb-1">
-                          <span className={`text-sm font-semibold ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>
+                        <div className="flex items-start justify-between mb-0.5">
+                          <span className={`text-xs font-semibold ${isToday ? 'text-indigo-600' : 'text-gray-900'}`}>
                             {date.getDate()}
                           </span>
                           {!isPast && (() => {

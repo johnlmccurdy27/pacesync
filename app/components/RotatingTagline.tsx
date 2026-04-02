@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const TAGLINES = [
   'Bring Structur to your training.',
@@ -13,6 +13,11 @@ const TAGLINES = [
 ]
 
 export default function RotatingTagline({ className }: { className?: string }) {
-  const [tagline] = useState(() => TAGLINES[Math.floor(Math.random() * TAGLINES.length)])
+  const [tagline, setTagline] = useState(TAGLINES[0])
+
+  useEffect(() => {
+    setTagline(TAGLINES[Math.floor(Math.random() * TAGLINES.length)])
+  }, [])
+
   return <p className={className}>{tagline}</p>
 }

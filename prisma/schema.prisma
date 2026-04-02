@@ -95,13 +95,15 @@ model WorkoutSend {
 }
 
 model Group {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   name        String
   description String?
+  raceName    String?
+  raceDate    DateTime?
   coachId     String
-  coach       User     @relation("CoachGroups", fields: [coachId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  
+  coach       User      @relation("CoachGroups", fields: [coachId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
   members     GroupMember[]
   workouts    WorkoutAssignment[]
 }
