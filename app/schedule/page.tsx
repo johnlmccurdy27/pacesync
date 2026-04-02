@@ -33,6 +33,8 @@ type Step = {
   unit: string
   zone: string | null
   position: number
+  repeatCount: number | null
+  repeatGroup: string | null
 }
 
 type WorkoutDetail = {
@@ -62,6 +64,30 @@ function weatherEmoji(code: number): string {
 
 function groupSteps(steps: Step[]): StepGroup[] {
   const groups: StepGroup[] = []
+
+  // New format: use repeatGroup field if present
+  if (steps.some(s => s.repeatGroup != null)) {
+    let i = 0
+    while (i < steps.length) {
+      const step = steps[i]
+      if (!step.repeatGroup) {
+        groups.push({ kind: 'single', step })
+        i++
+      } else {
+        const groupId = step.repeatGroup
+        const count = step.repeatCount ?? 1
+        const groupStepsList: Step[] = []
+        while (i < steps.length && steps[i].repeatGroup === groupId) {
+          groupStepsList.push(steps[i])
+          i++
+        }
+        groups.push({ kind: 'repeat', steps: groupStepsList, count })
+      }
+    }
+    return groups
+  }
+
+  // Legacy fallback: heuristic pattern matching
   let i = 0
   const stepsMatch = (a: Step, b: Step) =>
     a.type === b.type && a.value === b.value && a.unit === b.unit && a.measure === b.measure
