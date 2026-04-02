@@ -77,13 +77,13 @@ export async function GET(
         }
 
         // Garmin repeat pointer step: go back to groupStartIndex, repeat N times
+        // Note: repeat pointer steps must NOT include targetType — only durationValue (first step index) and targetValue (count)
         fitEntries.push({
           type: 'repeat',
           data: {
             messageIndex,
             durationType: 6,         // repeatUntilStepsCmplt
             durationValue: groupStartIndex,  // messageIndex of first step in group
-            targetType: 2,           // open
             targetValue: repeatCount,
           }
         })
@@ -173,12 +173,14 @@ function convertToSeconds(value: number, unit: string): number {
 }
 
 function getIntensityValue(type: string): number {
+  // Garmin FIT Intensity enum: 0=active, 1=rest, 2=warmup, 3=cooldown, 4=recovery, 5=interval
   switch (type.toLowerCase()) {
     case 'warmup': return 2
     case 'cooldown': return 3
-    case 'recovery': return 4
-    case 'interval': return 5
-    case 'main': return 0
+    case 'recovery': return 1   // rest
+    case 'rest': return 1       // rest
+    case 'interval': return 0   // active
+    case 'main': return 0       // active
     default: return 0
   }
 }
